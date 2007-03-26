@@ -137,7 +137,7 @@ sub graph_connxn($$) {
 	      "DEF:mconnxn=$connxn_rrd:connxn:MAX",
 	      "CDEF:dconnxn=connxn,UN,0,connxn,IF,$step,*",
 	      "CDEF:sconnxn=PREV,UN,dconnxn,PREV,IF,dconnxn,+",
-	      "LINE2:connxn#$color{connxn}:Connections",
+	      "LINE2:connxn#$color{connxn}:Plaintext Conns",
 	      'GPRINT:sconnxn:MAX:total\: %8.0lf conns',
 	      'GPRINT:connxn:AVERAGE:avg\: %5.2lf conns/min',
 	      'GPRINT:mconnxn:MAX:max\: %4.0lf conns/min\l',
