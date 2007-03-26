@@ -1,0 +1,32 @@
+FDSGRAPH -- A Fedora DS log grapher
+
+Copyright 2006 Chris St. Pierre <stpierre@nebrwesleyan.edu>
+Based on mailgraph by David Schweikert
+
+These instructions are for upgrading from FDSgraph v0.1.
+
+Copy the files for v0.2 to the following places:
+
+/usr/local/bin/fdsgraph.pl
+/var/www/cgi-bin/fdsgraph.cgi
+/etc/init.d/fdsgraph
+
+(This is for RHEL4; the location of fdsgraph.cgi may change on other
+platforms and/or depending on your Apache configuration.)
+
+Check ownership of all files.  They should be owned by root;
+fdsgraph.cgi should be set to the 'apache' group, and the others to
+'root'.  fdsgraph and fdsgraph.cgi should both be 755, fdsgraph.pl
+should be 750.
+
+Next, stop FDSgraph:
+
+# service fdsgraph stop
+
+Remove the old connection RRD:
+
+# rm /var/lib/fdsgraph/fds_connxn.rrd
+
+Start FDSgraph back up:
+
+# service fdsgraph start
