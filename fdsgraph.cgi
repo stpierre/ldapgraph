@@ -1,14 +1,9 @@
 #!/usr/bin/perl -w
 
-# fdsgraph -- An rrdtool-based graphing tool for Fedora DS statistics
-# copyright (c) 2006 Chris St. Pierre <stpierre@nebrwesleyan.edu>
-# based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
-# released under the GNU General Public License
+# fdsgraph -- a Fedora DS statistics rrdtool frontend
 
 use RRDs;
 use POSIX qw(uname);
-
-my $VERSION = "1.12";
 
 my $host = (POSIX::uname())[1];
 my $scriptname = 'fdsgraph.cgi';
@@ -35,6 +30,7 @@ my %color = (add    => '0000AA',
 	     ext    => 'AAAA00',
 	     connxn => 'AA0000',
 	     ssl    => '00AA00',
+	     tls    => '0000AA',
 	     );
 
 sub rrd_graph(@) {
@@ -153,7 +149,16 @@ sub graph_connxn($$) {
 	      "LINE2:ssl#$color{ssl}:SSL Conns  ",
 	      'GPRINT:sssl:MAX:total\: %8.0lf conns',
 	      'GPRINT:ssl:AVERAGE:avg\: %5.2lf conns/min',
-	      'GPRINT:mssl:MAX:max\: %4.0lf conns/min\l'
+	      'GPRINT:mssl:MAX:max\: %4.0lf conns/min\l',
+
+	      "DEF:tls=$connxn_rrd:tls:AVERAGE",
+	      "DEF:mtls=$connxn_rrd:tls:MAX",
+	      "CDEF:dtls=tls,UN,0,tls,IF,$step,*",
+	      "CDEF:stls=PREV,UN,dtls,PREV,IF,dtls,+",
+	      "LINE2:tls#$color{tls}:TLS Conns  ",
+	      'GPRINT:stls:MAX:total\: %8.0lf conns',
+	      'GPRINT:tls:AVERAGE:avg\: %5.2lf conns/min',
+	      'GPRINT:mtls:MAX:max\: %4.0lf conns/min\l'
 	      );
 }
 

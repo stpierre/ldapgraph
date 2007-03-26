@@ -207,7 +207,7 @@ my $connxn_rrd = "fds_connxn.rrd";
 my $year;
 my $this_minute;
 my %sum = ( add => 0, srch => 0, bind => 0, mod => 0, del => 0, ext => 0,
-	    connxn => 0, ssl => 0);
+	    connxn => 0, ssl => 0, tls => 0);
 my $rrd_inited=0;
 
 my %opt = ();
@@ -316,6 +316,7 @@ sub init_rrd($) {
 	RRDs::create($connxn_rrd, '--start', $m, '--step', $rrdstep,
 		     'DS:connxn:GAUGE:' . ($rrdstep * 2) . ':0:U',
 		     'DS:ssl:GAUGE:' . ($rrdstep * 2) . ':0:U',
+		     'DS:tls:GAUGE:' . ($rrdstep * 2) . ':0:U',
 		     "RRA:AVERAGE:0.5:$day_steps:$realrows",   # day
 		     "RRA:AVERAGE:0.5:$week_steps:$realrows",  # week
 		     "RRA:AVERAGE:0.5:$month_steps:$realrows", # month
@@ -342,8 +343,11 @@ sub process_line($) {
     my $text = $sl->[2];
 
     if ($op) {
-	if ($op =~ /^SSL|ADD|SRCH|BIND|MOD|DEL|EXT$/) {
+	if ($op =~ /^SSL|ADD|SRCH|BIND|MOD|DEL$/) {
 	    event($time, lc($op));
+	} elsif ($op =~ /^EXT$/) {
+	    event($time, 'ext');
+	    event($time, 'tls') if $text =~ /oid="1\.3\.6\.1\.4\.1\.1466\.20037"/;
 	}
     } else { # either a connect or disconnect
 	if ($text =~ /^connection from/) {
@@ -369,7 +373,7 @@ sub update($) {
     my $err = RRDs::error;
     warn "update of $ops_rrd failed: $err\n" if $err;
 
-    RRDs::update $connxn_rrd, "$this_minute:$sum{connxn}:$sum{ssl}";
+    RRDs::update $connxn_rrd, "$this_minute:$sum{connxn}:$sum{ssl}:$sum{tls}";
     $err = RRDs::error;
     warn "update of $connxn_rrd failed: $err\n" if $err;
 
@@ -388,6 +392,7 @@ sub update($) {
     $sum{ext} = 0;
     $sum{connxn} = 0;
     $sum{ssl} = 0;
+    $sum{tls} = 0;
     return 1;
 }
 
