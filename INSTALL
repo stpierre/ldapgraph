@@ -1,11 +1,11 @@
 FDSGRAPH -- A Fedora DS log grapher
 
-Copyright 2006 Chris St. Pierre <stpierre@nebrwesleyan.edu>
+Copyright 2006-2007 Chris St. Pierre <stpierre@nebrwesleyan.edu>
 Based on mailgraph by David Schweikert
 
 Before installing fdsgraph, you must install rrdtool and the Perl RRDs
 library.  On a RHEL system, that corresponds to the 'rrdtool' and
-'perl-rrdtool' rpms.
+'perl-rrdtool' RPMs.
 
 To install fdsgraph, copy the files to the following places:
 

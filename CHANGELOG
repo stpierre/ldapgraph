@@ -1,3 +1,15 @@
+v0.3, NN-MMM-2007
+
+* FDSGraph will now attempt to determine its instance rather than
+  relying on the hostname of the machine.  If one instance exists, it
+  will use that by default; if more than one instance exists, it will
+  require you to use the -I (instance) flag.
+* Deprecated the -l (logfile) flag in favor of -I.
+* Fixed a bug that would prevent the connections graph from getting
+  updated at all if there were no connections for a while.  It should
+  get updated with zeros.
+* Fixed warnings from log entries on FDS startup.
+
 v0.2, 21-Dec-2006
 
 * Added support for TLS connections to the connection graph

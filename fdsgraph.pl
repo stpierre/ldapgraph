@@ -1,6 +1,9 @@
 #!/usr/bin/perl -w
 
-# fdsgraph -- an rrdtool frontend for Fedora DS statistics
+# fdsgraph -- An rrdtool-based graphing tool for Fedora DS statistics
+# copyright (c) 2006-2007 Chris St. Pierre <stpierre@nebrwesleyan.edu>
+# based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
+# released under the GNU General Public License
 
 ######## Parse::FDSlog 0.1b ########
 package Parse::FDSlog;
@@ -125,6 +128,12 @@ sub next($) {
         return $self->{_repeat_data};
     }
   line: while(my $str = $self->_next_line()) {
+		# when FDS starts up, it generates three lines at the top of its logs
+		# that aren't in the same format as the rest of the logs.  The first
+		# two start with whitespace, and the third is blank.
+		next if $str =~ /^\s+/;
+		next if $str =~ /^$/;
+
       $str =~ /^
 			 \[(\d+)\/(\S+)\/\d+  # date - 1, 2
 			 \:
@@ -182,7 +191,6 @@ use strict;
 use File::Tail;
 use Getopt::Long;
 use POSIX 'setsid';
-use Sys::Hostname;
 
 my $VERSION = "1.12";
 
@@ -196,8 +204,8 @@ my $daemon_pidfile = '/var/run/fdsgraph.pid';
 my $daemon_rrd_dir = '/var/log';
 
 # global variables
-my $hostname = (split(/\./, hostname()))[0];
-my $logfile = "/opt/fedora-ds/slapd-$hostname/logs/access";
+my $logfile;
+my $instance;
 my $ops_rrd = "fds_ops.rrd";
 my $connxn_rrd = "fds_connxn.rrd";
 my $year;
@@ -211,185 +219,218 @@ my %opt = ();
 # prototypes
 sub daemonize();
 sub process_line($);
-					  sub init_rrd($);
-										sub update($);
+sub init_rrd($);
+sub update($);
 
-													  sub usage {
-															print "usage: fdsgraph [*options*]\n\n";
-															print "  -h, --help         display this help and exit\n";
-															print "  -V, --version      output version information and exit\n";
-															print "  -l, --logfile=FILE monitor FILE instead of $logfile\n";
-															print "  -y, --year         starting year of the log file (default: current year)\n";
-															print "  -d, --daemon       start in the background\n";
-															print "  --daemon-pid=FILE  write PID to FILE instead of /var/run/fdsgraph.pid\n";
-															print "  --daemon-rrd=DIR   write RRDs to DIR instead of .\n";
-															print "  --daemon-log=FILE  write verbose-log to FILE instead of /var/log/fdsgraph.log\n";
+sub usage {
+	 print "usage: fdsgraph [*options*]\n\n";
+	 print "  -h, --help          display this help and exit\n";
+	 print "  -V, --version       output version information and exit\n";
+	 print "  -I, --instance=INST specify instance; do not include the slapd-\n";                 
+	 print "  -l, --logfile=FILE  monitor FILE (deprecated; use -I)\n";
+	 print "  -y, --year          starting year of the log file (default: current year)\n";
+	 print "  -d, --daemon        start in the background\n";
+	 print "  --daemon-pid=FILE   write PID to FILE instead of /var/run/fdsgraph.pid\n";
+	 print "  --daemon-rrd=DIR    write RRDs to DIR instead of .\n";
+	 print "  --daemon-log=FILE   write verbose-log to FILE instead of /var/log/fdsgraph.log\n";
+	 
+	 exit;
+}
 
-															exit;
-													  }
+sub main {
+	 Getopt::Long::Configure('no_ignore_case');
+		GetOptions(\%opt, 'help|h', 'logfile|l=s', 'year|y=i', 'daemon|d!',
+					  'daemon_pid|daemon-pid=s', 'daemon_rrd|daemon-rrd=s',
+					  'daemon_log|daemon-log=s', 'instance|i=s',
+					  ) or exit(1);
+		usage() if $opt{help};
+		
+		$daemon_pidfile = $opt{daemon_pid} if defined $opt{daemon_pid};
+		$daemon_logfile = $opt{daemon_log} if defined $opt{daemon_log};
+		$daemon_rrd_dir = $opt{daemon_rrd} if defined $opt{daemon_rrd};
 
-													  sub main {
-															Getopt::Long::Configure('no_ignore_case');
-															  GetOptions(\%opt, 'help|h', 'logfile|l=s', 'year|y=i', 'daemon|d!',
-																			 'daemon_pid|daemon-pid=s', 'daemon_rrd|daemon-rrd=s',
-																			 'daemon_log|daemon-log=s'
-																			 ) or exit(1);
-															  usage() if $opt{help};
-															  
-															  $daemon_pidfile = $opt{daemon_pid} if defined $opt{daemon_pid};
-															  $daemon_logfile = $opt{daemon_log} if defined $opt{daemon_log};
-															  $daemon_rrd_dir = $opt{daemon_rrd} if defined $opt{daemon_rrd};
+		if($opt{daemon} or $opt{daemon_rrd}) {
+			 chdir $daemon_rrd_dir or die "fdsgraph: can't chdir to $daemon_rrd_dir: $!";
+			 -w $daemon_rrd_dir or die "fdsgraph: can't write to $daemon_rrd_dir\n";
+		}
 
-															  if($opt{daemon} or $opt{daemon_rrd}) {
-																	chdir $daemon_rrd_dir or die "fdsgraph: can't chdir to $daemon_rrd_dir: $!";
-																	-w $daemon_rrd_dir or die "fdsgraph: can't write to $daemon_rrd_dir\n";
-															  }
+		daemonize if $opt{daemon};
 
-															  daemonize if $opt{daemon};
+		if ($opt{'instance'}) {
+			 $instance = $opt{'instance'};
+			 if (-d "/opt/fedora-ds/slapd-$instance" &&
+				  -r "/opt/fedora-ds/slapd-$instance") {
+			 } else { 
+				  die "/opt/fedora-ds/slapd-$instance does not exist or is not readable\n";
+			 }
+		} else { # no instance specified on the command line
+			 # try to determine the instance
+			 if (-d "/opt/fedora-ds" && -r "/opt/fedora-ds") {
+				  my @instances = </opt/fedora-ds/slapd-*>;
+				  if ($#instances == 1) {
+						my $i = shift(@instances);
+						$i =~ /\/slapd-(.*)$/;
+						$instance = $1;
+				  } elsif ($#instances == 0) {
+						die "No instance (slapd-*/) found in /opt/fedora-ds\n";
+				  } else { # $#instances > 1
+						warn "More than one instance of Fedora DS found in /opt/fedora-ds\n";
+						die "You must specify an instance on the command line with -I\n";
+				  }
+			 } else { 
+				  die "/opt/fedora-ds does not exist or is not readable\n";
+			 }
+		}
 
-															  $logfile = $opt{logfile} if $opt{logfile};
-															  my $file;
-															  $file = File::Tail->new(name => $logfile, tail => -1);
-															  my $parser = new Parse::FDSlog($file, year => $opt{year}, arrayref => 1);
+		if ($opt{logfile}) {
+			 $logfile = $opt{logfile}
+			 warn "The -l (--logfile) option is deprecated; please use -I instead\n";
+		} else { # no logfile specified -- use the instance to figure it out
+			 $logfile = "/opt/fedora-ds/slapd-$instance_name/logs/access";
+		}
 
-															  while(my $sl = $parser->next) {
-																	process_line($sl);
-															  }
-														 }
+		my $file;
+		$file = File::Tail->new(name => $logfile, tail => -1);
+		my $parser = new Parse::FDSlog($file, year => $opt{year}, arrayref => 1);
 
-													  sub daemonize() {
-															open STDIN, '/dev/null' or die "fdsgraph: can't read /dev/null: $!";
-															open STDOUT, '>/dev/null' or die "fdsgraph: can't write to /dev/null: $!";
-															defined(my $pid = fork) or die "fdsgraph: can't fork: $!";
-															if($pid) {
-																 # parent
-																 open PIDFILE, ">$daemon_pidfile"
-																	  or die "fdsgraph: can't write to $daemon_pidfile: $!\n";
-																 print PIDFILE "$pid\n";
-																 close(PIDFILE);
-																 exit;
-															}
-															# child
-															setsid or die "fdsgraph: can't start a new session: $!";
-															open STDERR, '>&STDOUT' or die "fdsgraph: can't dup stdout: $!";
-													  }
+		while(my $sl = $parser->next) {
+			 process_line($sl);
+		}
+  }
 
-													  sub init_rrd($) {
-															my $m = shift;
-															my $rows = $xpoints/$points_per_sample;
-															my $realrows = int($rows*1.1); # ensure that the full range is covered
-															my $day_steps = int(3600*24 / ($rrdstep*$rows));
-															# use multiples, otherwise rrdtool could choose the wrong RRA
-															my $week_steps = $day_steps*7;
-															my $month_steps = $week_steps*5;
-															my $year_steps = $month_steps*12;
+sub daemonize() {
+	 open STDIN, '/dev/null' or die "fdsgraph: can't read /dev/null: $!";
+	 open STDOUT, '>/dev/null' or die "fdsgraph: can't write to /dev/null: $!";
+	 defined(my $pid = fork) or die "fdsgraph: can't fork: $!";
+	 if($pid) {
+		  # parent
+		  open PIDFILE, ">$daemon_pidfile"
+				or die "fdsgraph: can't write to $daemon_pidfile: $!\n";
+		  print PIDFILE "$pid\n";
+		  close(PIDFILE);
+		  exit;
+	 }
+	 # child
+	 setsid or die "fdsgraph: can't start a new session: $!";
+	 open STDERR, '>&STDOUT' or die "fdsgraph: can't dup stdout: $!";
+}
 
-															if(! -f $ops_rrd) {
-																 RRDs::create($ops_rrd, '--start', $m, '--step', $rrdstep,
-																				  'DS:add:GAUGE:' . ($rrdstep*2) . ':0:U',
-																				  'DS:srch:GAUGE:' . ($rrdstep*2) . ':0:U',
-																				  'DS:bind:GAUGE:' . ($rrdstep*2) . ':0:U',
-																				  'DS:mod:GAUGE:' . ($rrdstep*2) . ':0:U',
-																				  'DS:del:GAUGE:' . ($rrdstep*2) . ':0:U',
-																				  'DS:ext:GAUGE:' . ($rrdstep*2) . ':0:U',
-																				  "RRA:AVERAGE:0.5:$day_steps:$realrows",   # day
-																				  "RRA:AVERAGE:0.5:$week_steps:$realrows",  # week
-																				  "RRA:AVERAGE:0.5:$month_steps:$realrows", # month
-																				  "RRA:AVERAGE:0.5:$year_steps:$realrows",  # year
-																				  "RRA:MAX:0.5:$day_steps:$realrows",   # day
-																				  "RRA:MAX:0.5:$week_steps:$realrows",  # week
-																				  "RRA:MAX:0.5:$month_steps:$realrows", # month
-																				  "RRA:MAX:0.5:$year_steps:$realrows",  # year
-																				  );
-																	my $err = RRDs::error;
-																	warn "create of $ops_rrd failed: $err\n" if $err;
-																	$this_minute = $m;
-															  } elsif(-f $ops_rrd) {
-																	$this_minute = RRDs::last($ops_rrd) + $rrdstep;
-															  }    
+sub init_rrd($) {
+	 my $m = shift;
+	 my $rows = $xpoints/$points_per_sample;
+	 my $realrows = int($rows*1.1); # ensure that the full range is covered
+	 my $day_steps = int(3600*24 / ($rrdstep*$rows));
+	 # use multiples, otherwise rrdtool could choose the wrong RRA
+	 my $week_steps = $day_steps*7;
+	 my $month_steps = $week_steps*5;
+	 my $year_steps = $month_steps*12;
 
-															if(! -f $connxn_rrd) {
-																 RRDs::create($connxn_rrd, '--start', $m, '--step', $rrdstep,
-																				  'DS:connxn:GAUGE:' . ($rrdstep * 2) . ':0:U',
-																				  'DS:ssl:GAUGE:' . ($rrdstep * 2) . ':0:U',
-																				  'DS:tls:GAUGE:' . ($rrdstep * 2) . ':0:U',
-																				  "RRA:AVERAGE:0.5:$day_steps:$realrows",   # day
-																				  "RRA:AVERAGE:0.5:$week_steps:$realrows",  # week
-																				  "RRA:AVERAGE:0.5:$month_steps:$realrows", # month
-																				  "RRA:AVERAGE:0.5:$year_steps:$realrows",  # year
-																				  "RRA:MAX:0.5:$day_steps:$realrows",   # day
-																				  "RRA:MAX:0.5:$week_steps:$realrows",  # week
-																				  "RRA:MAX:0.5:$month_steps:$realrows", # month
-																				  "RRA:MAX:0.5:$year_steps:$realrows",  # year
-																				  );
-																	my $err = RRDs::error;
-																	warn "create of $connxn_rrd failed: $err\n" if $err;
-																	$this_minute = $m;
-															  } elsif(-f $connxn_rrd) {
-																	$this_minute = RRDs::last($connxn_rrd) + $rrdstep;
-															  }
+	 if(! -f $ops_rrd) {
+		  RRDs::create($ops_rrd, '--start', $m, '--step', $rrdstep,
+							'DS:add:GAUGE:' . ($rrdstep*2) . ':0:U',
+							'DS:srch:GAUGE:' . ($rrdstep*2) . ':0:U',
+							'DS:bind:GAUGE:' . ($rrdstep*2) . ':0:U',
+							'DS:mod:GAUGE:' . ($rrdstep*2) . ':0:U',
+							'DS:del:GAUGE:' . ($rrdstep*2) . ':0:U',
+							'DS:ext:GAUGE:' . ($rrdstep*2) . ':0:U',
+							"RRA:AVERAGE:0.5:$day_steps:$realrows",   # day
+							"RRA:AVERAGE:0.5:$week_steps:$realrows",  # week
+							"RRA:AVERAGE:0.5:$month_steps:$realrows", # month
+							"RRA:AVERAGE:0.5:$year_steps:$realrows",  # year
+							"RRA:MAX:0.5:$day_steps:$realrows",   # day
+							"RRA:MAX:0.5:$week_steps:$realrows",  # week
+							"RRA:MAX:0.5:$month_steps:$realrows", # month
+							"RRA:MAX:0.5:$year_steps:$realrows",  # year
+							);
+			 my $err = RRDs::error;
+			 warn "create of $ops_rrd failed: $err\n" if $err;
+			 $this_minute = $m;
+		} elsif(-f $ops_rrd) {
+			 $this_minute = RRDs::last($ops_rrd) + $rrdstep;
+		}    
 
-															$rrd_inited = 1;
-													  }
+	 if(! -f $connxn_rrd) {
+		  RRDs::create($connxn_rrd, '--start', $m, '--step', $rrdstep,
+							'DS:connxn:GAUGE:' . ($rrdstep * 2) . ':0:U',
+							'DS:ssl:GAUGE:' . ($rrdstep * 2) . ':0:U',
+							'DS:tls:GAUGE:' . ($rrdstep * 2) . ':0:U',
+							"RRA:AVERAGE:0.5:$day_steps:$realrows",   # day
+							"RRA:AVERAGE:0.5:$week_steps:$realrows",  # week
+							"RRA:AVERAGE:0.5:$month_steps:$realrows", # month
+							"RRA:AVERAGE:0.5:$year_steps:$realrows",  # year
+							"RRA:MAX:0.5:$day_steps:$realrows",   # day
+							"RRA:MAX:0.5:$week_steps:$realrows",  # week
+							"RRA:MAX:0.5:$month_steps:$realrows", # month
+							"RRA:MAX:0.5:$year_steps:$realrows",  # year
+							);
+			 my $err = RRDs::error;
+			 warn "create of $connxn_rrd failed: $err\n" if $err;
+			 $this_minute = $m;
+		} elsif(-f $connxn_rrd) {
+			 $this_minute = RRDs::last($connxn_rrd) + $rrdstep;
+		}
 
-																		sub process_line($) {
-																			 my $sl = shift;
-																			 my $time = $sl->[0];
-																			 my $op = $sl->[1];
-																			 my $text = $sl->[2];
+	 $rrd_inited = 1;
+}
 
-																			 if ($op) {
-																				  if ($op =~ /^SSL|ADD|SRCH|BIND|MOD|DEL$/) {
-																						event($time, lc($op));
-																				  } elsif ($op =~ /^EXT$/) {
-																						event($time, 'ext');
-																						event($time, 'tls') if $text =~ /oid="1\.3\.6\.1\.4\.1\.1466\.20037"/;
-																				  }
-																			 } else { # either a connect or disconnect
-																				  if ($text =~ /^connection from/) {
-																						event($time, 'connxn');
-																				  }
-																			 }
-																		}
+sub process_line($) {
+	 my $sl = shift;
+	 my $time = $sl->[0];
+	 my $op = $sl->[1];
+	 my $text = $sl->[2];
 
-																							  sub event($$) {
-																									my ($t, $type) = @_;
-																									update($t) and $sum{$type}++;
-																							  }
+	 if ($op) {
+		  if ($op =~ /^SSL|ADD|SRCH|BIND|MOD|DEL$/) {
+				event($time, lc($op));
+		  } elsif ($op =~ /^EXT$/) {
+				event($time, 'ext');
+				event($time, 'tls') if $text =~ /oid="1\.3\.6\.1\.4\.1\.1466\.20037"/;
+		  }
+	 } else { # either a connect or disconnect
+		  if ($text =~ /^connection from/) {
+				event($time, 'connxn');
+		  }
+	 }
+}
+
+sub event($$) {
+	 my ($t, $type) = @_;
+	 update($t) and $sum{$type}++;
+}
 
 # returns 1 if $sum should be updated
-																							  sub update($) {
-																									my $t = shift;
-																									my $m = $t - $t%$rrdstep;
-																									init_rrd($m) unless $rrd_inited;
-																									return 1 if $m == $this_minute;
-																									return 0 if $m < $this_minute;
+sub update($) {
+	 my $t = shift;
+	 my $m = $t - $t % $rrdstep;
+	 init_rrd($m) unless $rrd_inited;
+	 return 1 if $m == $this_minute;
+	 return 0 if $m < $this_minute;
 
-																									RRDs::update $ops_rrd, "$this_minute:$sum{add}:$sum{srch}:$sum{bind}:$sum{mod}:$sum{del}:$sum{ext}";
-																									my $err = RRDs::error;
-																									warn "update of $ops_rrd failed: $err\n" if $err;
+	 RRDs::update $ops_rrd, "$this_minute:$sum{add}:$sum{srch}:$sum{bind}:$sum{mod}:$sum{del}:$sum{ext}";
+	 my $err = RRDs::error;
+	 warn "update of $ops_rrd failed: $err\n" if $err;
 
-																									RRDs::update $connxn_rrd, "$this_minute:$sum{connxn}:$sum{ssl}:$sum{tls}";
-																									$err = RRDs::error;
-																									warn "update of $connxn_rrd failed: $err\n" if $err;
+	 RRDs::update $connxn_rrd, "$this_minute:$sum{connxn}:$sum{ssl}:$sum{tls}";
+	 $err = RRDs::error;
+	 warn "update of $connxn_rrd failed: $err\n" if $err;
 
-																									if ($m > $this_minute + $rrdstep) {
-																										 for (my $sm = $this_minute + $rrdstep; $sm < $m; $sm += $rrdstep) {
-																											  RRDs::update $ops_rrd, "$sm:0:0:0:0";
-																												 RRDs::update $connxn_rrd, "$sm:0:0:0";
-																											}
-																									}
-																									$this_minute = $m;
-																									$sum{add} = 0;
-																									$sum{srch} = 0;
-																									$sum{bind} = 0;
-																									$sum{mod} = 0;
-																									$sum{del} = 0;
-																									$sum{ext} = 0;
-																									$sum{connxn} = 0;
-																									$sum{ssl} = 0;
-																									$sum{tls} = 0;
-																									return 1;
-																							  }
+	 if ($m > $this_minute + $rrdstep) {
+		  for (my $sm = $this_minute + $rrdstep; $sm < $m; $sm += $rrdstep) {
+				RRDs::update $ops_rrd, "$sm:0:0:0:0";
+				RRDs::update $connxn_rrd, "$sm:0:0:0";
+		  }
+	 }
+	 $this_minute = $m;
+	 $sum{add} = 0;
+	 $sum{srch} = 0;
+	 $sum{bind} = 0;
+	 $sum{mod} = 0;
+	 $sum{del} = 0;
+	 $sum{ext} = 0;
+	 $sum{connxn} = 0;
+	 $sum{ssl} = 0;
+	 $sum{tls} = 0;
+	 return 1;
+}
 
-																											 main;
+main;
