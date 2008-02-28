@@ -3,7 +3,7 @@
 # $Id$
 #
 # fdsgraph -- An rrdtool-based graphing tool for Fedora DS statistics
-# copyright (c) 2006-2007 Chris St. Pierre <stpierre@nebrwesleyan.edu>
+# copyright (c) 2006-2008 Chris St. Pierre <stpierre@nebrwesleyan.edu>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 

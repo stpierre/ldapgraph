@@ -3,7 +3,7 @@
 # $Id$
 
 # fdsgraph -- An rrdtool-based graphing tool for Fedora DS statistics
-# copyright (c) 2006-2007 Chris St. Pierre <stpierre@nebrwesleyan.edu>
+# copyright (c) 2006-2008 Chris St. Pierre <stpierre@nebrwesleyan.edu>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 
@@ -16,9 +16,10 @@ my $xpoints = 540;
 my $points_per_sample = 3;
 my $ypoints = 300;
 # where the RRD databases live
-my $ops_rrd = '/var/lib/fdsgraph/fds_ops.rrd';
-my $connxn_rrd = '/var/lib/fdsgraph/fds_connxn.rrd';
-my $tmp_dir = '/tmp/fdsgraph'; # temporary directory where to store the images
+chomp(my $rrd_dir = `source /etc/sysconfig/fdsgraph && echo \$RRD_DIR`);
+my $ops_rrd = "$rrd_dir/fds_ops.rrd";
+my $connxn_rrd = "$rrd_dir/fds_connxn.rrd";
+my $tmp_dir = '/tmp/fdsgraph'; # temporary directory to store the images
 
 my @graphs = (
 	      { title => 'Day Graphs',       seconds => 3600 * 24,           },
