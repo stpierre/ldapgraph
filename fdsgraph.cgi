@@ -1,5 +1,7 @@
 #!/usr/bin/perl -w
 
+# $Id$
+
 # fdsgraph -- An rrdtool-based graphing tool for Fedora DS statistics
 # copyright (c) 2006-2007 Chris St. Pierre <stpierre@nebrwesleyan.edu>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
@@ -12,39 +14,41 @@ my $host = (POSIX::uname())[1];
 my $scriptname = 'fdsgraph.cgi';
 my $xpoints = 540;
 my $points_per_sample = 3;
-my $ypoints = 160;
+my $ypoints = 300;
 # where the RRD databases live
 my $ops_rrd = '/var/lib/fdsgraph/fds_ops.rrd';
 my $connxn_rrd = '/var/lib/fdsgraph/fds_connxn.rrd';
 my $tmp_dir = '/tmp/fdsgraph'; # temporary directory where to store the images
 
 my @graphs = (
-	      { title => 'Day Graphs',   seconds => 3600*24,        },
-	      { title => 'Week Graphs',  seconds => 3600*24*7,      },
-	      { title => 'Month Graphs', seconds => 3600*24*31,     },
-	      { title => 'Year Graphs',  seconds => 3600*24*365, },
+	      { title => 'Day Graphs',       seconds => 3600 * 24,           },
+	      { title => 'Week Graphs',      seconds => 3600 * 24 * 7,       },
+	      { title => 'Month Graphs',     seconds => 3600 * 24 * 31,      },
+	      { title => 'Year Graphs',      seconds => 3600 * 24 * 365,     },
+	      { title => 'Five-Year Graphs', seconds => 3600 * 24 * 365 * 5, },
 	      );
 
-my %color = (add    => '0000AA',
-	     srch   => 'AA0000',
-	     bind   => '00AA00',
-	     mod    => 'AA00AA',
-	     del    => '00AAAA',
-	     ext    => 'AAAA00',
-	     connxn => 'AA0000',
-	     ssl    => '00AA00',
-	     tls    => '0000AA',
+my %color = (add    => '00B',
+	     srch   => 'B00',
+	     bind   => '0B0',
+	     mod    => 'B0B',
+	     del    => '0BB',
+	     ext    => 'BB0',
+	     plain  => 'B00',
+	     ssl    => '0B0',
+	     tls    => '00B',
 	     );
 
 sub rrd_graph(@) {
     my ($range, $file, $ypoints, $unit, @rrdargs) = @_;
-    my $step = $range*$points_per_sample/$xpoints;
+    my $step = $range * $points_per_sample / $xpoints;
     # choose carefully the end otherwise rrd will maybe pick the wrong RRA:
-    my $end  = time; $end -= $end % $step;
+    my $end = time;
+    $end -= $end % $step;
     my $date = localtime(time);
     $date =~ s|:|\\:|g unless $RRDs::VERSION < 1.199908;
 
-    my ($graphret,$xs,$ys) =
+    my ($graphret, $xs, $ys) =
 	RRDs::graph($file,
 		    '--imgformat', 'PNG',
 		    '--width', $xpoints,
@@ -75,93 +79,129 @@ sub rrd_graph(@) {
 sub graph_ops($$) {
     my ($range, $file) = @_;
     my $step = $range * $points_per_sample / $xpoints;
+
+    my (@areas, @lines);
+    my @ops = qw(srch ext bind mod add del);
+
+    foreach my $op (@ops) {
+	push(@areas,
+	     "DEF:$op=$ops_rrd:$op:AVERAGE",
+	     "DEF:m$op=$ops_rrd:$op:MAX",
+	     "CDEF:d$op=$op,UN,0,$op,IF,$step,*",
+	     "CDEF:s$op=PREV,UN,d$op,PREV,IF,d$op,+",
+	     "AREA:$op#" . $color{$op} . ":" . substr(uc("$op    "), 0, 4) . ":STACK",
+	     "GPRINT:s$op:MAX:\\t%12.0lf",
+	     "GPRINT:$op:AVERAGE:\\t%6.2lf",
+	     "GPRINT:m$op:MAX:\\t%6.0lf\\l",
+	     );
+
+	push(@lines,
+	     "CDEF:n$op=$op,-1,*",
+	     "LINE2:n$op#" . $color{$op},
+	     );
+    }
+
     rrd_graph($range, $file, $ypoints, "ops",
-	      "DEF:srch=$ops_rrd:srch:AVERAGE",
-	      "DEF:msrch=$ops_rrd:srch:MAX",
-	      "CDEF:dsrch=srch,UN,0,srch,IF,$step,*",
-	      "CDEF:ssrch=PREV,UN,dsrch,PREV,IF,dsrch,+",
-	      "LINE2:srch#$color{srch}:SRCH",
-	      'GPRINT:ssrch:MAX:total\: %8.0lf ops',
-	      'GPRINT:srch:AVERAGE:avg\: %5.2lf ops/min',
-	      'GPRINT:msrch:MAX:max\: %4.0lf ops/min\l',
+	      'COMMENT:\t\t\t    TOTAL\t\tAVERAGE\t\tMAX\l',
+	      @areas,
+	      @lines,
 
-	      "DEF:bind=$ops_rrd:bind:AVERAGE",
-	      "DEF:mbind=$ops_rrd:bind:MAX",
-	      "CDEF:dbind=bind,UN,0,bind,IF,$step,*",
-	      "CDEF:sbind=PREV,UN,dbind,PREV,IF,dbind,+",
-	      "LINE2:bind#$color{bind}:BIND",
-	      'GPRINT:sbind:MAX:total\: %8.0lf ops',
-	      'GPRINT:bind:AVERAGE:avg\: %5.2lf ops/min',
-	      'GPRINT:mbind:MAX:max\: %4.0lf ops/min\l',
+	      "CDEF:stotalr=ssrch,sbind,sext,+,+",
+	      "CDEF:totalr=srch,bind,ext,+,+",
+	      "CDEF:mtotalr=msrch,mbind,mext,+,+",
+	      'COMMENT:  Read Ops',
+	      'GPRINT:stotalr:MAX:  %12.0lf',
+	      'GPRINT:totalr:AVERAGE:\t%6.2lf',
+	      'GPRINT:mtotalr:MAX:\t%6.0lf\l',
 
-	      "DEF:ext=$ops_rrd:ext:AVERAGE",
-	      "DEF:mext=$ops_rrd:ext:MAX",
-	      "CDEF:dext=ext,UN,0,ext,IF,$step,*",
-	      "CDEF:sext=PREV,UN,dext,PREV,IF,dext,+",
-	      "LINE2:ext#$color{ext}:EXT ",
-	      'GPRINT:sext:MAX:total\: %8.0lf ops',
-	      'GPRINT:ext:AVERAGE:avg\: %5.2lf ops/min',
-	      'GPRINT:mext:MAX:max\: %4.0lf ops/min\l',
+	      "CDEF:stotalw=smod,sadd,sdel,+,+",
+	      "CDEF:totalw=mod,add,del,+,+",
+	      "CDEF:mtotalw=mmod,madd,mdel,+,+",
+	      'COMMENT:  Write Ops',
+	      'GPRINT:stotalw:MAX: %12.0lf',
+	      'GPRINT:totalw:AVERAGE:\t%6.2lf',
+	      'GPRINT:mtotalw:MAX:\t%6.0lf\l',
 
-	      "DEF:mod=$ops_rrd:mod:AVERAGE",
-	      "DEF:mmod=$ops_rrd:mod:MAX",
-	      "CDEF:dmod=mod,UN,0,mod,IF,$step,*",
-	      "CDEF:smod=PREV,UN,dmod,PREV,IF,dmod,+",
-	      "LINE2:mod#$color{mod}:MOD ",
-	      'GPRINT:smod:MAX:total\: %8.0lf ops',
-	      'GPRINT:mod:AVERAGE:avg\: %5.2lf ops/min',
-	      'GPRINT:mmod:MAX:max\: %4.0lf ops/min\l',
-
-	      "DEF:add=$ops_rrd:add:AVERAGE",
-	      "DEF:madd=$ops_rrd:add:MAX",
-	      "CDEF:dadd=add,UN,0,add,IF,$step,*",
-	      "CDEF:sadd=PREV,UN,dadd,PREV,IF,dadd,+",
-	      "LINE2:add#$color{add}:ADD ",
-	      'GPRINT:sadd:MAX:total\: %8.0lf ops',
-	      'GPRINT:add:AVERAGE:avg\: %5.2lf ops/min',
-	      'GPRINT:madd:MAX:max\: %4.0lf ops/min\l',
-
-	      "DEF:del=$ops_rrd:del:AVERAGE",
-	      "DEF:mdel=$ops_rrd:del:MAX",
-	      "CDEF:ddel=del,UN,0,del,IF,$step,*",
-	      "CDEF:sdel=PREV,UN,ddel,PREV,IF,ddel,+",
-	      "LINE2:del#$color{del}:DEL ",
-	      'GPRINT:sdel:MAX:total\: %8.0lf ops',
-	      'GPRINT:del:AVERAGE:avg\: %5.2lf ops/min',
-	      'GPRINT:mdel:MAX:max\: %4.0lf ops/min\l',
+	      "CDEF:stotal=stotalr,stotalw,+",
+	      "CDEF:total=totalr,totalw,+",
+	      "CDEF:mtotal=mtotalr,mtotalw,+",
+	      'COMMENT:  Total Ops',
+	      'GPRINT:stotal:MAX: %12.0lf',
+	      'GPRINT:total:AVERAGE:\t%6.2lf',
+	      'GPRINT:mtotal:MAX:\t%6.0lf\l',
 	      );
 }
 
 sub graph_connxn($$) {
     my ($range, $file) = @_;
     my $step = $range * $points_per_sample / $xpoints;
+
+    my (@areas, @lines);
+    my %types = (tls    => "TLS      ",
+		 ssl    => "SSL      ",
+		 );
+
+    foreach my $type (keys(%types)) {
+	push(@areas,
+	     "DEF:$type=$connxn_rrd:$type:AVERAGE",
+	     "DEF:m$type=$connxn_rrd:$type:MAX",
+	     "CDEF:d$type=$type,UN,0,$type,IF,$step,*",
+	     "CDEF:s$type=PREV,UN,d$type,PREV,IF,d$type,+",
+	     "AREA:$type#" . $color{$type} . ":" . $types{$type} . ":STACK",
+	     "GPRINT:s$type:MAX:\\t%12.0lf",
+	     "GPRINT:$type:AVERAGE:\\t%6.2lf",
+	     "GPRINT:m$type:MAX:\\t%6.0lf\\l",
+	     );
+
+	push(@lines,
+	     "CDEF:n$type=$type,-1,*",
+	     "LINE2:n$type#" . $color{$type},
+	     );
+    }
+
+    push(@areas,
+	 "DEF:connxn=$connxn_rrd:connxn:AVERAGE",
+	 "DEF:mconnxn=$connxn_rrd:connxn:MAX",
+	 "CDEF:dconnxn=connxn,UN,0,connxn,IF,$step,*",
+	 "CDEF:sconnxn=PREV,UN,dconnxn,PREV,IF,dconnxn,+",
+
+	 "CDEF:plain=connxn,tls,-",
+	 "CDEF:mplain=mconnxn,mtls,-",
+	 "CDEF:dplain=dconnxn,dtls,-",
+	 "CDEF:splain=sconnxn,stls,-",
+
+	 "AREA:plain#" . $color{plain} . ":Plaintext:STACK",
+	 "GPRINT:splain:MAX:\\t%12.0lf",
+	 "GPRINT:plain:AVERAGE:\\t%6.2lf",
+	 "GPRINT:mplain:MAX:\\t%6.0lf\\l",
+	 );
+
+	push(@lines,
+	     "CDEF:nplain=plain,-1,*",
+	     "LINE2:nplain#" . $color{'plain'},
+	     );
+
     rrd_graph($range, $file, $ypoints, "connections",
-	      "DEF:connxn=$connxn_rrd:connxn:AVERAGE",
-	      "DEF:mconnxn=$connxn_rrd:connxn:MAX",
-	      "CDEF:dconnxn=connxn,UN,0,connxn,IF,$step,*",
-	      "CDEF:sconnxn=PREV,UN,dconnxn,PREV,IF,dconnxn,+",
-	      "LINE2:connxn#$color{connxn}:Plaintext Conns",
-	      'GPRINT:sconnxn:MAX:total\: %8.0lf conns',
-	      'GPRINT:connxn:AVERAGE:avg\: %5.2lf conns/min',
-	      'GPRINT:mconnxn:MAX:max\: %4.0lf conns/min\l',
+	      'COMMENT:\t\t\t\t   TOTAL\t\tAVERAGE\t\tMAX\l',
+	      @areas,
+	      @lines,
 
-	      "DEF:ssl=$connxn_rrd:ssl:AVERAGE",
-	      "DEF:mssl=$connxn_rrd:ssl:MAX",
-	      "CDEF:dssl=ssl,UN,0,ssl,IF,$step,*",
-	      "CDEF:sssl=PREV,UN,dssl,PREV,IF,dssl,+",
-	      "LINE2:ssl#$color{ssl}:SSL Conns  ",
-	      'GPRINT:sssl:MAX:total\: %8.0lf conns',
-	      'GPRINT:ssl:AVERAGE:avg\: %5.2lf conns/min',
-	      'GPRINT:mssl:MAX:max\: %4.0lf conns/min\l',
+	      "CDEF:stotals=stls,sssl,+",
+	      "CDEF:totals=tls,ssl,+",
+	      "CDEF:mtotals=mtls,mssl,+",
+	      'COMMENT:  Total Secure',
+	      'GPRINT:stotals:MAX:   %12.0lf',
+	      'GPRINT:totals:AVERAGE:\t%6.2lf',
+	      'GPRINT:mtotals:MAX:\t%6.0lf\l',
 
-	      "DEF:tls=$connxn_rrd:tls:AVERAGE",
-	      "DEF:mtls=$connxn_rrd:tls:MAX",
-	      "CDEF:dtls=tls,UN,0,tls,IF,$step,*",
-	      "CDEF:stls=PREV,UN,dtls,PREV,IF,dtls,+",
-	      "LINE2:tls#$color{tls}:TLS Conns  ",
-	      'GPRINT:stls:MAX:total\: %8.0lf conns',
-	      'GPRINT:tls:AVERAGE:avg\: %5.2lf conns/min',
-	      'GPRINT:mtls:MAX:max\: %4.0lf conns/min\l'
+	      "CDEF:stotal=stotals,splain,+",
+	      "CDEF:total=totals,plain,+",
+	      "CDEF:mtotal=mtotals,mplain,+",
+	      'COMMENT:  Total Conns',
+	      'GPRINT:stotal:MAX:    %12.0lf',
+	      'GPRINT:total:AVERAGE:\t%6.2lf',
+	      'GPRINT:mtotal:MAX:\t%6.0lf\l',
+
 	      );
 }
 

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# $Id$
+#
 # init script for fdsgraph
 #
 # chkconfig: 2345 82 28
@@ -14,13 +16,12 @@
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 
+. /etc/sysconfig/fdsgraph
+
 PATH=/bin:/usr/bin
-FDSGRAPH_PL=/usr/local/bin/fdsgraph.pl
-PID_FILE=/var/run/fdsgraph.pid
-RRD_DIR=/var/lib/fdsgraph
 
 case "$1" in
-'start')
+    'start')
 	echo "Starting fdsgraph";
 	if [ -e $PID_FILE ]; then
 	    echo "fdsgraph already running";
@@ -30,21 +31,21 @@ case "$1" in
 	fi
 	;;
 
-'stop')
+    'stop')
 	echo "Stopping fdsgraph";
 	if [ -f $PID_FILE ]; then
-		kill `cat $PID_FILE`
-		rm $PID_FILE
+	    kill `cat $PID_FILE`
+	    rm $PID_FILE
 	else
-		echo "fdsgraph not running";
+	    echo "fdsgraph not running";
 	fi
 	;;
 
-'restart')
+    'restart')
 	$0 stop; $0 start;
 	;;
 
-*)
+    *)
 	echo "Usage: $0 { start | stop }"
 	exit 1
 	;;

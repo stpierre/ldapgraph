@@ -1,0 +1,10 @@
+# $Id$
+#
+# path to fdsgraph executable
+FDSGRAPH_PL=/usr/local/bin/fdsgraph.pl
+
+# path to pid file
+PID_FILE=/var/run/fdsgraph.pid
+
+# where to store the RRDs
+RRD_DIR=/var/lib/fdsgraph

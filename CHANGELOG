@@ -1,5 +1,9 @@
-v0.3, NN-MMM-2007
+v0.3, 28-Feb-2008
 
+* Supports Fedora DS 1.1, with FHS paths
+* New, more detailed graph layout
+* Sysconfig file added to make it easier to reconfigure and update
+  with RPM
 * FDSGraph will now attempt to determine its instance rather than
   relying on the hostname of the machine.  If one instance exists, it
   will use that by default; if more than one instance exists, it will
