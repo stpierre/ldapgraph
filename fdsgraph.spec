@@ -5,7 +5,7 @@
 
 Summary:   Fedora DS Graph
 Name:      fdsgraph
-Version:   0.8.2
+Version:   0.3.0
 Release:   1
 License:   GPL
 Group:     System Environment/Daemons
@@ -32,8 +32,8 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig
 
 install -m 755 -o root -g root fdsgraph.pl $RPM_BUILD_ROOT%{_bindir}/fdsgraph.pl
 install -m 755 -o root -g apache fdsgraph.cgi $RPM_BUILD_ROOT%{cgidir}/fdsgraph.cgi
-install -m 755 -o root -g root fdsgraph $RPM_BUILD_ROOT${initdir}/fdsgraph
-install -m 755 -o root -g root fdsgraph-sysconfig $RPM_BUILD_ROOT${_sysconfdir}/sysconfig/fdsgraph
+install -m 755 -o root -g root fdsgraph $RPM_BUILD_ROOT%{initdir}/fdsgraph
+install -m 755 -o root -g root fdsgraph-sysconfig $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/fdsgraph
 
 %post
 /sbin/chkconfig --add fdsgraph

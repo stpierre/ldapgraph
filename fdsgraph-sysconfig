@@ -1,7 +1,7 @@
 # $Id$
 #
 # path to fdsgraph executable
-FDSGRAPH_PL=/usr/local/bin/fdsgraph.pl
+FDSGRAPH_PL=/usr/bin/fdsgraph.pl
 
 # path to pid file
 PID_FILE=/var/run/fdsgraph.pid

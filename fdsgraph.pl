@@ -276,24 +276,28 @@ sub main {
 		die "Could not read or locate logs in either /var/log/dirsrv/slapd-$instance or /opt/fedora-ds/slapd-$instance\n";
 	    }
 	} else { # no instance specified on the command line
-	    # try to determine the instance - still only works pre-1.1
+	    # try to determine the instance
+	    my $fdsroot;
 	    if (-d "/opt/fedora-ds" && -r "/opt/fedora-ds") {
-		my @instances = </opt/fedora-ds/slapd-*>;
-		if ($#instances == 1) {
-		    my $i = shift(@instances);
-		    $i =~ /\/slapd-(.*)$/;
-		    $instance = $1;
-		} elsif ($#instances == 0) {
-		    die "No instance (slapd-*/) found in /opt/fedora-ds\n";
-		} else { # $#instances > 1
-		    warn "More than one instance of Fedora DS found in /opt/fedora-ds\n";
-		    die "You must specify an instance on the command line with -I\n";
-		}
-	    } else { 
-		die "/opt/fedora-ds does not exist or is not readable\n";
+		$fdsroot = "/opt/fedora-ds";
+	    } elsif (-d "/etc/dirsrv" && -r "/etc/dirsrv") {
+		$fdsroot = "/etc/dirsrv";
+	    } else {
+		die "No installation of Fedora DS 1.0 (/opt/fedora-ds) or 1.1 (/etc/dirsrv) found\n";
+	    }
+	    my @instances = <$fdsroot/slapd-*>;
+	    if ($#instances == 1) {
+		my $i = shift(@instances);
+		$i =~ /\/slapd-(.*)$/;
+		$instance = $1;
+	    } elsif ($#instances == 0) {
+		die "No instance (slapd-*/) found in $fdsroot\n";
+	    } else { # $#instances > 1
+		warn "More than one instance of Fedora DS found in $fdsroot\n";
+		die "You must specify an instance on the command line with -I\n";
 	    }
 	}
-	$logfile = "/opt/fedora-ds/slapd-$instance_name/logs/access";
+	$logfile = "/opt/fedora-ds/slapd-$instance/logs/access";
     }
 
     my $file;
