@@ -1,0 +1,53 @@
+#!/bin/sh
+
+# $Id$
+#
+# init script for ds-graphd
+#
+# chkconfig: 2345 82 28
+# description: fedora-ds-graph Fedora DS log grapher.
+#
+# processname: ds-graphd
+# pidfile: /var/run/ds-graph.pid
+
+# fedora-ds-graph -- An rrdtool-based graphing tool for Fedora DS statistics
+# copyright (c) 2006-2008 Chris St. Pierre <stpierre@nebrwesleyan.edu>
+# based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
+# released under the GNU General Public License
+
+. /etc/sysconfig/ds-graph
+
+PATH=/bin:/usr/bin
+
+case "$1" in
+    'start')
+	echo "Starting ds-graph";
+	if [ -e ${PID_FILE} ]; then
+	    echo "ds-graph already running";
+	else
+	    nice -19 ${DS_GRAPHD} -d --pidfile=${PID_FILE} \
+		--rrddir=${RRD_DIR} -I ${INSTANCE}
+	fi
+	;;
+
+    'stop')
+	echo "Stopping ds-graph";
+	if [ -f ${PID_FILE} ]; then
+	    kill `cat ${PID_FILE}`
+	    rm ${PID_FILE}
+	else
+	    echo "ds-graph not running";
+	fi
+	;;
+
+    'restart')
+	$0 stop; $0 start;
+	;;
+
+    *)
+	echo "Usage: $0 { start | stop }"
+	exit 1
+	;;
+
+esac
+exit 0
