@@ -1,3 +1,12 @@
+v1.0, 3-Mar-2008
+
+* Renamed to Fedora DS Graph
+* Fedora DS Graph now places CGIs in /usr/share, to adhere to FHS
+* Instance detection done in sysconfig file, to increase
+  configurability
+* Renamed files to ds-* or fedora-ds-*
+* Fixed a number of small bugs
+
 v0.3, 28-Feb-2008
 
 * Supports Fedora DS 1.1, with FHS paths
@@ -7,12 +16,12 @@ v0.3, 28-Feb-2008
 * FDSGraph will now attempt to determine its instance rather than
   relying on the hostname of the machine.  If one instance exists, it
   will use that by default; if more than one instance exists, it will
-  require you to use the -I (instance) flag.
-* Deprecated the -l (logfile) flag in favor of -I.
+  require you to use the -I (instance) flag
+* Deprecated the -l (logfile) flag in favor of -I
 * Fixed a bug that would prevent the connections graph from getting
   updated at all if there were no connections for a while.  It should
-  get updated with zeros.
-* Fixed warnings from log entries on FDS startup.
+  get updated with zeros
+* Fixed warnings from log entries on FDS startup
 
 v0.2, 21-Dec-2006
 
