@@ -2,7 +2,7 @@
 
 # $Id$
 
-# fdsgraph -- An rrdtool-based graphing tool for Fedora DS statistics
+# fedora-ds-graph -- An rrdtool-based graphing tool for Fedora DS statistics
 # copyright (c) 2006-2008 Chris St. Pierre <stpierre@nebrwesleyan.edu>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
@@ -11,15 +11,15 @@ use RRDs;
 use POSIX qw(uname);
 
 my $host = (POSIX::uname())[1];
-my $scriptname = 'fdsgraph.cgi';
+my $scriptname = 'ds-graph.cgi';
 my $xpoints = 540;
 my $points_per_sample = 3;
 my $ypoints = 300;
 # where the RRD databases live
-chomp(my $rrd_dir = `source /etc/sysconfig/fdsgraph && echo \$RRD_DIR`);
+chomp(my $rrd_dir = `source /etc/sysconfig/ds-graph && echo \$RRD_DIR`);
 my $ops_rrd = "$rrd_dir/fds_ops.rrd";
 my $connxn_rrd = "$rrd_dir/fds_connxn.rrd";
-my $tmp_dir = '/tmp/fdsgraph'; # temporary directory to store the images
+my $tmp_dir = '/tmp/fedora-ds-graph'; # temporary directory to store the images
 
 my @graphs = (
 	      { title => 'Day Graphs',       seconds => 3600 * 24,           },
@@ -64,10 +64,8 @@ sub rrd_graph(@) {
 		    '--color', 'SHADEB#ffffff',
 		    '--color', 'BACK#ffffff',
 		    
-		    $RRDs::VERSION < 1.2002 ? () : (
-						    '--slope-mode'
-						    ),
-		    
+		    $RRDs::VERSION < 1.2002 ? () : ('--slope-mode'),
+
 		    @rrdargs,
 		    
 		    'COMMENT:['.$date.']\r',
@@ -225,8 +223,8 @@ HEADER
 	print '<div style="background: #dddddd; width: 632px">';
 	print "<H2>$graphs[$n]{title}</H2>\n";
 	print "</div>\n";
-	print "<P><IMG BORDER=\"0\" SRC=\"$scriptname?${n}-n\" ALT=\"fdsgraph\">\n";
-	print "<P><IMG BORDER=\"0\" SRC=\"$scriptname?${n}-e\" ALT=\"fdsgraph\">\n";
+	print "<P><IMG BORDER=\"0\" SRC=\"$scriptname?${n}-n\" ALT=\"fedora-ds-graph\">\n";
+	print "<P><IMG BORDER=\"0\" SRC=\"$scriptname?${n}-e\" ALT=\"fedora-ds-graph\">\n";
     }
 
     print <<FOOTER;

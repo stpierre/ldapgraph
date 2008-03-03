@@ -2,6 +2,7 @@
 
 %define cgidir  /usr/share/fedora-ds-graph
 %define initdir %{_sysconfdir}/rc.d/init.d
+%define apacheconfdir %{_sysconfdir}/httpd/conf.d
 
 Summary:   Fedora DS Graph
 Name:      fedora-ds-graph
@@ -33,11 +34,13 @@ mkdir -p $RPM_BUILD_ROOT%{_bindir}
 mkdir -p $RPM_BUILD_ROOT%{cgidir}
 mkdir -p $RPM_BUILD_ROOT%{initdir}
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig
+mkdir -p $RPM_BUILD_ROOT%{apacheconfdir}
 
 install -m 755 -o root -g root ds-graphd $RPM_BUILD_ROOT%{_bindir}/ds-graphd
 install -m 755 -o root -g apache ds-graph.cgi $RPM_BUILD_ROOT%{cgidir}/ds-graph.cgi
 install -m 755 -o root -g root ds-graph $RPM_BUILD_ROOT%{initdir}/ds-graph
-install -m 755 -o root -g root ds-graph-sysconfig $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ds-graph
+install -m 644 -o root -g root ds-graph-sysconfig $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ds-graph
+install -m 644 -o root -g root fedora-ds-graph.conf $RPM_BUILD_ROOT%{apacheconfdir}/fedora-ds-graph.conf
 
 %post
 /sbin/chkconfig --add ds-graph
@@ -51,6 +54,7 @@ rm -rf $RPM_BUILD_ROOT
 %{initdir}/ds-graph
 
 %config(noreplace) %{_sysconfdir}/sysconfig/ds-graph
+%config(noreplace) %{apacheconfdir}/fedora-ds-graph.conf
 
 %changelog
 * Thu Feb 28 2008 Chris St. Pierre <stpierre@NebrWesleyan.edu> - 
