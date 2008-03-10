@@ -6,7 +6,7 @@
 
 Summary:   Fedora DS Graph
 Name:      fedora-ds-graph
-Version:   1.0.0
+Version:   1.0.1
 Release:   1
 License:   GPL
 Group:     System Environment/Daemons

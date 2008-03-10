@@ -1,3 +1,7 @@
+v1.0.1, 10-Mar-2008
+
+* Fixed bug that prevented SSL connections from being counted properly
+
 v1.0, 3-Mar-2008
 
 * Renamed to Fedora DS Graph

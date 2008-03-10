@@ -407,12 +407,12 @@ sub process_line($) {
 	} elsif ($op =~ /^EXT$/) {
 	    event($time, 'ext');
 	    event($time, 'tls') if $text =~ /oid="1\.3\.6\.1\.4\.1\.1466\.20037"/;
+	} elsif ($op =~ /^SSL$/) {
+	    event($time, 'ssl');
 	}
     } else { # either a connect or disconnect
 	if ($text =~ /^connection from/) {
 	    event($time, 'connxn');
-	} elsif ($text =~ /^SSL connection from/) {
-	    event($time, 'ssl');
 	}
     }
 }
