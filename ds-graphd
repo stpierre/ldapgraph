@@ -193,7 +193,7 @@ use File::Tail;
 use Getopt::Long;
 use POSIX 'setsid';
 
-my $VERSION = "1.0.0";
+my $VERSION = "1.0.2";
 
 # config
 my $rrdstep = 60;
@@ -242,7 +242,6 @@ daemonize if $opt{daemon};
 
 if ($opt{'logfile'}) {
     $logfile = $opt{'logfile'};
-    warn "The -l (--logfile) option is deprecated; please use -I instead\n";
 } else { # no logfile specified -- use the instance to figure it out
     if ($opt{'instance'}) {
 	$instance = $opt{'instance'};
@@ -376,6 +375,7 @@ sub init_rrd($) {
 		     'DS:connxn:GAUGE:' . ($rrdstep * 2) . ':0:U',
 		     'DS:ssl:GAUGE:'    . ($rrdstep * 2) . ':0:U',
 		     'DS:tls:GAUGE:'    . ($rrdstep * 2) . ':0:U',
+		     'DS:sasl:GAUGE:'    . ($rrdstep * 2) . ':0:U',
 		     "RRA:AVERAGE:0.5:$day_steps:$realrows",   # day
 		     "RRA:AVERAGE:0.5:$week_steps:$realrows",  # week
 		     "RRA:AVERAGE:0.5:$month_steps:$realrows", # month
@@ -389,10 +389,103 @@ sub init_rrd($) {
 	warn "create of $connxn_rrd failed: $err\n" if $err;
 	$this_minute = $m;
     } elsif (-f $connxn_rrd) {
+	# TLS tracking added in v0.3; upgrade old DBs if necessary
+	chomp(my $has_tls = `rrdtool info $connxn_rrd | grep -F 'ds[tls]' | wc -l`);
+	if (!$has_tls) {
+	    add_ds($connxn_rrd, 'tls', 'GAUGE', $rrdstep * 2, 0, 'U');
+	}
+
+	# SASL bind tracking added in v1.0.2; upgrade old DBs if necessary
+	chomp(my $has_sasl = `rrdtool info $connxn_rrd | grep -F 'ds[sasl]' | wc -l`);
+	if (!$has_sasl) {
+	    add_ds($connxn_rrd, 'sasl', 'GAUGE', $rrdstep * 2, 0, 'U');
+	}
+
 	$this_minute = RRDs::last($connxn_rrd) + $rrdstep;
     }
 
     $rrd_inited = 1;
+}
+
+sub add_ds($$$$$$) {
+    my ($rrd, $ds, $type, $heartbeat, $llim, $ulim) = @_;
+    
+    # we export the RRD to XML, munge the XML, then re-import it
+    
+    # first, BACK UP THE RRD!
+    system("cp $rrd $rrd.bak");
+
+    # export to XML
+    system("rrdtool dump $rrd $rrd.xml");
+    open(IN, "$rrd.xml") or do {
+	warn "Couldn't open $rrd.xml for read; conversion of RRD was not successful";
+	return 0;
+    }
+
+    # open file to write munged XML to
+    open(OUT, ">$rrd-fixed.xml") or do {
+	warn "Couldn't open $rrd-fixed.xml for write: conversion of RRD was not successful";
+	return 0;
+    }
+
+    my $cdp_prep_end = '</cdp_prep>';
+    
+    my $row_end = '</row>';
+    my $name = '<name>';
+    my $name_end = '</name>';
+    
+    my $field = '<v> NaN </v>';
+    
+    my $found_ds = 0;
+    my $num_sources = 0;
+    my $last;
+    my $fields = " ";
+    my $datasource;
+    my $x;
+
+    while (<IN>) {
+	if (($_ =~ s/$row_end$/$fields$row_end/) && $found_ds) {
+	    # need to hit <ds> types first, if we don't, we're screwed
+	    print $_; 
+	} elsif (/$cdp_prep_end/) {
+	    print "\t\t\t<ds><value> NaN </value>  <unknown_datapoints> 0 </unknown_datapoints></ds>\n" x $ds;
+	    print $_;
+	} elsif (/$name_end$/) {
+	    ($datasource) = /$name (\w+)/;
+	    $found_ds++;
+	    print $_;
+	} elsif (/Round Robin Archives/) {
+	    # print out additional datasource definitions
+	    ($num_sources) = ($datasource =~ /(\d+)/);
+
+	    for ($x = $num_sources+1; $x < $num_sources+$ds+1; $x++) {
+		$fields .= $field;
+		print "\n\t<ds>\n";
+		print "\t\t<name> ds$x <\/name>\n";
+		print "\t\t<type> $type <\/type>\n";
+		print "\t\t<minimal_heartbeat> $heartbeat <\/minimal_heartbeat>\n";
+		print "\t\t<min> $llim <\/min>\n";
+		print "\t\t<max> $ulim <\/max>\n\n";
+		print "\t\t<!-- PDP Status-->\n";
+		print "\t\t<last_ds> NaN <\/last_ds>\n";
+		print "\t\t<value> NaN <\/value>\n";
+		print "\t\t<unknown_sec> NaN <\/unknown_sec>\n"; 
+		print "\t<\/ds>\n\n";
+	    }
+	    print $_;
+	} else {
+	    print $_;
+	}
+	
+	$last = $_;
+    }
+
+    close(IN);
+    close(OUT);
+
+    # import from fixed XML
+    unlink($rrd);
+    system("rrdtool restore $rrd-fixed.xml $rrd");
 }
 
 sub process_line($) {
@@ -402,8 +495,14 @@ sub process_line($) {
     my $text = $sl->[2];
 
     if ($op) {
-	if ($op =~ /^ADD|SRCH|BIND|MOD|DEL$/) {
+	if ($op =~ /^ADD|SRCH|MOD|DEL$/) {
 	    event($time, lc($op));
+	} elsif ($op =~ /^BIND$/) {
+	    event($time, 'bind');
+	    event($time, 'sasl') if $text =~ /^method=sasl/;
+	} elsif ($op =~ /^RESULT$/ && $text =~ /^err=14 tag=97/) {
+	    # SASL bind in progress
+	    event($time, 'unsasl');
 	} elsif ($op =~ /^EXT$/) {
 	    event($time, 'ext');
 	    event($time, 'tls') if $text =~ /oid="1\.3\.6\.1\.4\.1\.1466\.20037"/;
@@ -430,29 +529,55 @@ sub update($) {
     return 1 if $m == $this_minute;
     return 0 if $m < $this_minute;
 
-    RRDs::update $ops_rrd, "$this_minute:$sum{add}:$sum{srch}:$sum{bind}:$sum{mod}:$sum{del}:$sum{ext}";
+    RRDs::update($ops_rrd,
+		 $this_minute . ':' .
+		 $sum{'add'} . ':' .
+		 $sum{'srch'} . ':' .
+		 $sum{'bind'} . ':' .
+		 $sum{'mod'} . ':' .
+		 $sum{'del'} . ':' .
+		 $sum{'ext'});
     my $err = RRDs::error;
     warn "update of $ops_rrd failed: $err\n" if $err;
 
-    RRDs::update $connxn_rrd, "$this_minute:$sum{connxn}:$sum{ssl}:$sum{tls}";
+    # since TLS connections are initialized with the StartTLS EXT operation,
+    # and SASL connections are initialized at BIND time, they get counted
+    # as _both_ plaintext _and_ TLS or SASL.  (E.g., one count for the initial
+    # connection, which is plaintext at that time, and one count later when
+    # the connection is secured.)  Although the code here counts TLS and
+    # SASL connections twice -- thus inflating the 'connxn' counter -- that
+    # inflation is undone when the graph is drawn.
+    #
+    # this should be corrected, but tuning the data in an RRD like that would
+    # be difficult.  As it stands, existing Fedora DS Graph users already have
+    # lots of data in this format, so we're stuck with this for a while at
+    # least.
+    RRDs::update($connxn_rrd,
+		 $this_minute . ':' .
+		 $sum{'connxn'} . ':' .
+		 $sum{'ssl'} . ':' .
+		 $sum{'tls'} . ':' .
+		 ($sum{'sasl'} - $sum{'unsasl'}));
     $err = RRDs::error;
     warn "update of $connxn_rrd failed: $err\n" if $err;
 
     if ($m > $this_minute + $rrdstep) {
 	for (my $sm = $this_minute + $rrdstep; $sm < $m; $sm += $rrdstep) {
-	    RRDs::update $ops_rrd, "$sm:0:0:0:0";
-	    RRDs::update $connxn_rrd, "$sm:0:0:0";
+	    RRDs::update($ops_rrd, "$sm:0:0:0:0");
+	    RRDs::update($connxn_rrd, "$sm:0:0:0:0");
 	}
     }
     $this_minute = $m;
-    $sum{add} = 0;
-    $sum{srch} = 0;
-    $sum{bind} = 0;
-    $sum{mod} = 0;
-    $sum{del} = 0;
-    $sum{ext} = 0;
-    $sum{connxn} = 0;
-    $sum{ssl} = 0;
-    $sum{tls} = 0;
+    $sum{'add'} = 0;
+    $sum{'srch'} = 0;
+    $sum{'bind'} = 0;
+    $sum{'mod'} = 0;
+    $sum{'del'} = 0;
+    $sum{'ext'} = 0;
+    $sum{'connxn'} = 0;
+    $sum{'sasl'} = 0;
+    $sum{'unsasl'} = 0;
+    $sum{'ssl'} = 0;
+    $sum{'tls'} = 0;
     return 1;
 }

@@ -11,3 +11,7 @@ RRD_DIR=/var/lib/ds-graph
 
 # name of the Fedora DS instance
 INSTANCE=`hostname -s`
+
+# log file; only define this if you keep your logs someplace strange,
+# outside the normal directory.  This will override INSTANCE
+#LOGFILE=/logs/ldap/access

@@ -138,6 +138,7 @@ sub graph_connxn($$) {
     my (@areas, @lines);
     my %types = (tls    => "TLS      ",
 		 ssl    => "SSL      ",
+		 sasl   => "SASL     ",
 		 );
 
     foreach my $type (keys(%types)) {
@@ -164,10 +165,10 @@ sub graph_connxn($$) {
 	 "CDEF:dconnxn=connxn,UN,0,connxn,IF,$step,*",
 	 "CDEF:sconnxn=PREV,UN,dconnxn,PREV,IF,dconnxn,+",
 
-	 "CDEF:plain=connxn,tls,-",
-	 "CDEF:mplain=mconnxn,mtls,-",
-	 "CDEF:dplain=dconnxn,dtls,-",
-	 "CDEF:splain=sconnxn,stls,-",
+	 "CDEF:plain=connxn,tls,sasl,-,-",
+	 "CDEF:mplain=mconnxn,mtls,sasl,-,-",
+	 "CDEF:dplain=dconnxn,dtls,sasl,-,-",
+	 "CDEF:splain=sconnxn,stls,sasl,-,-",
 
 	 "AREA:plain#" . $color{plain} . ":Plaintext:STACK",
 	 "GPRINT:splain:MAX:\\t%12.0lf",

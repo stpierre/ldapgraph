@@ -1,9 +1,16 @@
+v1.0.2, NN-NNN-NNNN
+
+* De-deprecated -l logfile option
+* Added tracking of SASL binds/connections
+* Added magic to automatically update old versions of the connections
+  database (with code from Selena Brewington)
+
 v1.0.1, 10-Mar-2008
 
 * Fixed bug that prevented SSL connections from being counted properly
   (Thanks to Andrey Ivanov!)
 
-v1.0, 3-Mar-2008
+v1.0.0, 3-Mar-2008
 
 * Renamed to Fedora DS Graph
 * Fedora DS Graph now places CGIs in /usr/share, to adhere to FHS

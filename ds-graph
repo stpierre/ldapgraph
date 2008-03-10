@@ -21,12 +21,19 @@ PATH=/bin:/usr/bin
 
 case "$1" in
     'start')
+	if [ "x${LOGFILE}" != "x" ]; then
+	    ARGS="-l ${LOGFILE}"
+	else
+	    ARGS="-I ${INSTANCE}"
+	fi
+
+	ARGS="${ARGS} -d --pidfile=${PID_FILE} --rrddir=${RRD_DIR}"
+
 	echo "Starting ds-graph";
 	if [ -e ${PID_FILE} ]; then
 	    echo "ds-graph already running";
 	else
-	    nice -19 ${DS_GRAPHD} -d --pidfile=${PID_FILE} \
-		--rrddir=${RRD_DIR} -I ${INSTANCE}
+	    nice -19 ${DS_GRAPHD} ${ARGS}
 	fi
 	;;
 
