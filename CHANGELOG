@@ -1,6 +1,7 @@
 v1.0.1, 10-Mar-2008
 
 * Fixed bug that prevented SSL connections from being counted properly
+  (Thanks to Andrey Ivanov!)
 
 v1.0, 3-Mar-2008
 
