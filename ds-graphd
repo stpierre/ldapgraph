@@ -125,7 +125,7 @@ sub _next_line($) {
 
 sub next($) {
     my ($self) = @_;
-    while($self->{_repeat}>0) {
+    while($self->{_repeat} > 0) {
         $self->{_repeat}--;
         return $self->{_repeat_data};
     }
@@ -146,8 +146,7 @@ sub next($) {
 	  ([A-Z]*)              # operation - 6
 	  \s?
 	  (.*)                  # text - 7
-	  $/x or do
-      {
+	  $/x or do {
 	  warn "WARNING: line not in FDS log format: $str";
 	  next line;
       };
@@ -506,7 +505,7 @@ sub process_line($) {
 	} elsif ($op =~ /^EXT$/) {
 	    event($time, 'ext');
 	    event($time, 'tls') if $text =~ /oid="1\.3\.6\.1\.4\.1\.1466\.20037"/;
-	} elsif ($op =~ /^SSL$/) {
+	} elsif ($op =~ /^SSL$/ && $text =~ /^connection from/) {
 	    event($time, 'ssl');
 	}
     } else { # either a connect or disconnect
