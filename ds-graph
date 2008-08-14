@@ -15,6 +15,12 @@
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 
+# Source function library.
+. /etc/init.d/functions
+
+# path to pid file
+PID_FILE=/var/run/ds-graph.pid
+
 . /etc/sysconfig/ds-graph
 
 PATH=/bin:/usr/bin
@@ -33,7 +39,8 @@ case "$1" in
 	if [ -e ${PID_FILE} ]; then
 	    echo "ds-graph already running";
 	else
-	    nice -19 ${DS_GRAPHD} ${ARGS}
+	    touch /var/lock/subsys/ds-graph
+	    daemon ${DS_GRAPHD} ${ARGS}
 	fi
 	;;
 
@@ -42,6 +49,7 @@ case "$1" in
 	if [ -f ${PID_FILE} ]; then
 	    kill `cat ${PID_FILE}`
 	    rm ${PID_FILE}
+	    rm /var/lock/subsys/ds-graph
 	else
 	    echo "ds-graph not running";
 	fi
@@ -52,7 +60,7 @@ case "$1" in
 	;;
 
     *)
-	echo "Usage: $0 { start | stop }"
+	echo "Usage: $0 { start | stop | restart }"
 	exit 1
 	;;
 

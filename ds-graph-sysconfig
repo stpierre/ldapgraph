@@ -3,9 +3,6 @@
 # path to fdsgraph executable
 DS_GRAPHD=/usr/bin/ds-graphd
 
-# path to pid file
-PID_FILE=/var/run/ds-graph.pid
-
 # where to store the RRDs
 RRD_DIR=/var/lib/ds-graph
 
