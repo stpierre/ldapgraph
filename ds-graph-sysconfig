@@ -4,7 +4,7 @@
 DS_GRAPHD=/usr/bin/ds-graphd
 
 # where to store the RRDs
-RRD_DIR=/var/lib/ds-graph
+RRD_DIR=/var/lib/fedora-ds-graph
 
 # name of the Fedora DS instance
 INSTANCE=`hostname -s`

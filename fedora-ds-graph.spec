@@ -4,8 +4,8 @@
 
 Summary:   Fedora DS Graph
 Name:      fedora-ds-graph
-Version:   1.0.2
-Release:   1
+Version:   1.0.9
+Release:   2
 License:   GPLv2
 Group:     System Environment/Daemons
 Packager:  Chris St. Pierre <stpierre@nebrwesleyan.edu>
@@ -31,18 +31,30 @@ from Fedora Directory Server.
 
 %install
 rm -rf $RPM_BUILD_ROOT
+
+# binary
 mkdir -p $RPM_BUILD_ROOT%{_bindir}
-mkdir -p $RPM_BUILD_ROOT%{_datadir}/%{name}
+install -m 755 -o root -g root ds-graphd $RPM_BUILD_ROOT%{_bindir}/ds-graphd
+
+# init script, etc.
 mkdir -p $RPM_BUILD_ROOT%{_initrddir}
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig
-mkdir -p $RPM_BUILD_ROOT%{apacheconfdir}
-mkdir -p $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}
-
-install -m 755 -o root -g root ds-graphd $RPM_BUILD_ROOT%{_bindir}/ds-graphd
-install -m 755 -o root -g apache ds-graph.cgi $RPM_BUILD_ROOT%{_datadir}/%{name}/ds-graph.cgi
 install -m 755 -o root -g root ds-graph $RPM_BUILD_ROOT%{_initrddir}/ds-graph
 install -m 644 -o root -g root ds-graph-sysconfig $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ds-graph
+
+# data dir
+mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/%{name}
+
+# cgis
+mkdir -p $RPM_BUILD_ROOT%{_datadir}/%{name}
+install -m 755 -o root -g apache ds-graph.cgi $RPM_BUILD_ROOT%{_datadir}/%{name}/ds-graph.cgi
+
+# httpd config
+mkdir -p $RPM_BUILD_ROOT%{apacheconfdir}
 install -m 644 -o root -g root fedora-ds-graph.conf $RPM_BUILD_ROOT%{apacheconfdir}/fedora-ds-graph.conf
+
+# documentation
+mkdir -p $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}
 install -m 644 -o root -g root ChangeLog $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/ChangeLog
 install -m 644 -o root -g root COPYING $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/COPYING
 
@@ -56,6 +68,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{_bindir}/ds-graphd
 %{_initrddir}/ds-graph
+%{_localstatedir}/lib/%{name}
 %attr(-,root,apache) %{_datadir}/%{name}/ds-graph.cgi
 
 %config(noreplace) %{_sysconfdir}/sysconfig/ds-graph

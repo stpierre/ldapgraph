@@ -22,8 +22,6 @@ LOCK_FILE=/var/lock/subsys/ds-graph
 
 [ -e /etc/sysconfig/ds-graph ] && . /etc/sysconfig/ds-graph
 
-PATH=/bin:/usr/bin
-
 case "$1" in
     'start')
 	if [ "x${LOGFILE}" != "x" ]; then
@@ -42,8 +40,8 @@ case "$1" in
 	daemon ${DS_GRAPHD} ${ARGS}
 	RETVAL=$?
 	echo
-	[ ${RETVAL} -eq 0] && touch ${LOCK_FILE}
-	return ${RETVAL}
+	[ ${RETVAL} -eq 0 ] && touch ${LOCK_FILE}
+	exit ${RETVAL}
 	;;
 
     'stop')
@@ -51,8 +49,8 @@ case "$1" in
 	killproc ${DS_GRAPHD}
 	RETVAL=$?
 	echo
-	[ ${RETVAL} -eq 0] && rm ${LOCK_FILE}
-	return ${RETVAL}
+	[ ${RETVAL} -eq 0 ] && rm ${LOCK_FILE}
+	exit ${RETVAL}
 	;;
 
     'restart')
