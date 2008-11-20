@@ -168,13 +168,11 @@ my $rrd_dir = '/var/lib/ds-graph';
 my $logfile;
 my $fds_version;
 my $instance;
-my $ops_rrd = "$rrd_dir/fds_ops.rrd";
-my $connxn_rrd = "$rrd_dir/fds_connxn.rrd";
 my $year;
 my $this_minute;
 my %sum = ( add => 0, srch => 0, bind => 0, mod => 0, del => 0, ext => 0,
 	    cmp => 0, modrdn => 0,
-	    connxn => 0, ssl => 0, tls => 0, sasl => 0);
+	    connxn => 0, ssl => 0, tls => 0, sasl => 0, unsasl => 0);
 my $rrd_inited=0;
 
 my %opt = ();
@@ -194,6 +192,9 @@ usage() if $opt{'help'};
 
 $pidfile = $opt{'pidfile'} if defined $opt{'pidfile'};
 $rrd_dir = $opt{'rrddir'}  if defined $opt{'rrddir'};
+
+my $ops_rrd = "$rrd_dir/fds_ops.rrd";
+my $connxn_rrd = "$rrd_dir/fds_connxn.rrd";
 
 die "ds-graphd: can't write to $rrd_dir\n" unless -w $rrd_dir;
 
@@ -514,7 +515,9 @@ sub update($) {
 		 $sum{'bind'} . ':' .
 		 $sum{'mod'} . ':' .
 		 $sum{'del'} . ':' .
-		 $sum{'ext'});
+		 $sum{'ext'} . ':' .
+		 $sum{'cmp'} . ':' .
+		 $sum{'modrdn'});
     my $err = RRDs::error;
     warn "update of $ops_rrd failed: $err\n" if $err;
 
@@ -541,7 +544,7 @@ sub update($) {
 
     if ($m > $this_minute + $rrdstep) {
 	for (my $sm = $this_minute + $rrdstep; $sm < $m; $sm += $rrdstep) {
-	    RRDs::update($ops_rrd, "$sm:0:0:0:0");
+	    RRDs::update($ops_rrd, "$sm:0:0:0:0:0:0:0:0");
 	    RRDs::update($connxn_rrd, "$sm:0:0:0:0");
 	}
     }
@@ -552,6 +555,8 @@ sub update($) {
     $sum{'mod'} = 0;
     $sum{'del'} = 0;
     $sum{'ext'} = 0;
+    $sum{'cmp'} = 0;
+    $sum{'modrdn'} = 0;
     $sum{'connxn'} = 0;
     $sum{'sasl'} = 0;
     $sum{'unsasl'} = 0;

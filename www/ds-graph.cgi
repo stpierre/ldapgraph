@@ -66,9 +66,10 @@ sub rrd_graph(@) {
 		    '--start', "-$range",
 		    '--end', $end,
 		    '--vertical-label', $unit . '/min',
-		    '--lower-limit', 0,
+		    '--lower-limit', 1,
 		    '--units-exponent', 0, # don't show milli-messages/s
 		    '--logarithmic',
+		    '--units=si',
 		    '--lazy',
 		    '--color', 'SHADEA#ffffff',
 		    '--color', 'SHADEB#ffffff',
