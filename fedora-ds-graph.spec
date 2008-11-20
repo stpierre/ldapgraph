@@ -5,7 +5,7 @@
 Summary:   Fedora DS Graph
 Name:      fedora-ds-graph
 Version:   1.0.9
-Release:   3
+Release:   4
 License:   GPLv2
 Group:     System Environment/Daemons
 Packager:  Chris St. Pierre <stpierre@nebrwesleyan.edu>
@@ -45,9 +45,11 @@ install -m 644 -o root -g root ds-graph-sysconfig $RPM_BUILD_ROOT%{_sysconfdir}/
 # data dir
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/%{name}
 
-# cgis
-mkdir -p $RPM_BUILD_ROOT%{_datadir}/%{name}
-cp -R cgi/* $RPM_BUILD_ROOT%{_datadir}/%{name}
+# web stuff
+mkdir -p $RPM_BUILD_ROOT%{_datadir}/%{name}/cgi-bin
+install -m 755 -o root -g apache www/ds-graph.cgi $RPM_BUILD_ROOT%{_datadir}/%{name}/cgi-bin/ds-graph.cgi
+install -m 755 -o root -g apache www/ds-graph.css $RPM_BUILD_ROOT%{_datadir}/%{name}/ds-graph.css
+install -m 755 -o root -g apache www/rrdtool.png $RPM_BUILD_ROOT%{_datadir}/%{name}/rrdtool.png
 
 # httpd config
 mkdir -p $RPM_BUILD_ROOT%{apacheconfdir}

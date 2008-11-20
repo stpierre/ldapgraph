@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id$
+# $Id: ds-graph.cgi 30 2008-11-20 15:35:09Z stpierre $
 
 # fedora-ds-graph -- An rrdtool-based graphing tool for Fedora DS statistics
 # copyright (c) 2006-2008 Chris St. Pierre <stpierre@nebrwesleyan.edu>
@@ -68,6 +68,7 @@ sub rrd_graph(@) {
 		    '--vertical-label', $unit . '/min',
 		    '--lower-limit', 0,
 		    '--units-exponent', 0, # don't show milli-messages/s
+		    '--logarithmic',
 		    '--lazy',
 		    '--color', 'SHADEA#ffffff',
 		    '--color', 'SHADEB#ffffff',
@@ -218,7 +219,7 @@ sub print_html() {
     <title>LDAP Statistics for $host</title>
     <meta http-equiv="Refresh" content="300" />
     <meta http-equiv="Pragma" content="no-cache" />
-    <link rel="stylesheet" href="./ds-graph.css" type="text/css" />
+    <link rel="stylesheet" href="../ds-graph.css" type="text/css" />
     <script language="JavaScript"><!--
       function toggle(id) {
          var obj = document.getElementById(id);
@@ -248,56 +249,55 @@ HEADER
     }
 
     print <<FOOTER;
-    <hr width="630" align="left" size="1" noshade>
-	<table border="0" width="630" cellpadding="0" cellspacing="0" background="#dddddd"><tr><td align="left">
-	<td ALIGN="right">
-	<a HREF="http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/"><img border="0" src="http://people.ethz.ch/~oetiker/webtools/rrdtool/.pics/rrdtool.gif" alt="" width="120" height="34"></a>
-	</td></tr></table>
-	</BODY></HTML>
+    <a href="http://oss.oetiker.ch/rrdtool/"><img src="../rrdtool.png" border="0" width="128" height="48" /></a>
+  </body>
+</html>
 FOOTER
+;
     }
 
 sub send_image($) {
-    my ($file)= @_;
+    my $file = shift;
 
-    -r $file or do {
+    if (!-r $file) {
 	print "Content-type: text/plain\n\nERROR: can't find $file\n";
 	exit 1;
     };
 
     print "Content-type: image/png\n";
-    print "Content-length: ".((stat($file))[7])."\n";
+    print "Content-length: " . ((stat($file))[7]) . "\n";
     print "\n";
-    open(IMG, $file) or die;
+    open(IMG, $file) or die "Couldn't open $file: $!\n";
     my $data;
-    print $data while read(IMG, $data, 16384)>0;
+    print $data while read(IMG, $data, 16384) > 0;
+    close(IMG);
 }
 
 sub main() {
-    my $uri = $ENV{REQUEST_URI} || '';
+    my $uri = $ENV{'REQUEST_URI'} || '';
     $uri =~ s/\/[^\/]+$//;
     $uri =~ s/\//,/g;
     $uri =~ s/(\~|\%7E)/tilde,/g;
     mkdir $tmp_dir, 0777 unless -d $tmp_dir;
     mkdir "$tmp_dir/$uri", 0777 unless -d "$tmp_dir/$uri";
 
-    my $img = $ENV{QUERY_STRING};
-    if(defined $img and $img =~ /\S/) {
+    my $img = $ENV{'QUERY_STRING'};
+    if(defined($img) and $img =~ /\S/) {
 	if ($img =~ /^(\d+)-n$/) {
 	    my $file = "$tmp_dir/$uri/fds_ops_$1.png";
-	    graph_ops($graphs[$1]{seconds}, $file);
+	    graph_ops($graphs[$1]{'seconds'}, $file);
 	    send_image($file);
 	} elsif ($img =~ /^(\d+)-e$/) {
 	    my $file = "$tmp_dir/$uri/fds_connxn_$1.png";
-	    graph_connxn($graphs[$1]{seconds}, $file);
+	    graph_connxn($graphs[$1]{'seconds'}, $file);
 	    send_image($file);
 	} else {
 	    die "ERROR: invalid argument\n";
 	}
     }
     else {
-	print_html;
+	print_html();
     }
 }
 
-main;
+main();
