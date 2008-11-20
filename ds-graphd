@@ -146,6 +146,8 @@ sub next($) {
 #####################################################################
 #####################################################################
 
+package main;
+
 use RRDs;
 use strict;
 use File::Tail;
@@ -171,6 +173,7 @@ my $connxn_rrd = "fds_connxn.rrd";
 my $year;
 my $this_minute;
 my %sum = ( add => 0, srch => 0, bind => 0, mod => 0, del => 0, ext => 0,
+	    cmp => 0, modrdn => 0,
 	    connxn => 0, ssl => 0, tls => 0);
 my $rrd_inited=0;
 
@@ -454,7 +457,7 @@ sub process_line($) {
     my $text = $sl->[2];
 
     if ($op) {
-	if ($op =~ /^ADD|SRCH|MOD|DEL$/) {
+	if ($op =~ /^ADD|SRCH|MOD|DEL|CMP|MODRDN$/) {
 	    event($time, lc($op));
 	} elsif ($op =~ /^BIND$/) {
 	    event($time, 'bind');

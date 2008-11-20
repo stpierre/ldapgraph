@@ -35,6 +35,10 @@ my %color = (add    => '00B',
 	     mod    => 'B0B',
 	     del    => '0BB',
 	     ext    => 'BB0',
+	     cmp    => '880',
+	     modrdn => '808',
+
+	     # connections
 	     plain  => 'B00',
 	     ssl    => '0B0',
 	     tls    => '00B',
