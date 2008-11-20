@@ -168,8 +168,8 @@ my $rrd_dir = '/var/lib/ds-graph';
 my $logfile;
 my $fds_version;
 my $instance;
-my $ops_rrd = "fds_ops.rrd";
-my $connxn_rrd = "fds_connxn.rrd";
+my $ops_rrd = "$rrd_dir/fds_ops.rrd";
+my $connxn_rrd = "$rrd_dir/fds_connxn.rrd";
 my $year;
 my $this_minute;
 my %sum = ( add => 0, srch => 0, bind => 0, mod => 0, del => 0, ext => 0,
@@ -195,12 +195,9 @@ usage() if $opt{'help'};
 $pidfile = $opt{'pidfile'} if defined $opt{'pidfile'};
 $rrd_dir = $opt{'rrddir'}  if defined $opt{'rrddir'};
 
-if($opt{daemon} or $opt{'rrddir'}) {
-    chdir $rrd_dir or die "ds-graphd: can't chdir to $rrd_dir: $!";
-    -w $rrd_dir or die "ds-graphd: can't write to $rrd_dir\n";
-}
+die "ds-graphd: can't write to $rrd_dir\n" unless -w $rrd_dir;
 
-daemonize if $opt{daemon};
+daemonize() if $opt{'daemon'};
 
 if ($opt{'logfile'}) {
     $logfile = $opt{'logfile'};
@@ -341,7 +338,7 @@ sub init_rrd($) {
 	$this_minute = RRDs::last($ops_rrd) + $rrdstep;
     }    
 
-    if(! -f $connxn_rrd) {
+    if (!-f $connxn_rrd) {
 	RRDs::create($connxn_rrd, '--start', $m, '--step', $rrdstep,
 		     'DS:connxn:GAUGE:' . ($rrdstep * 2) . ':0:U',
 		     'DS:ssl:GAUGE:'    . ($rrdstep * 2) . ':0:U',
@@ -375,9 +372,18 @@ sub init_rrd($) {
     $rrd_inited = 1;
 }
 
+# much code for add_ds taken from add_ds.pl, Copyright (C) 2000 Selena M. Brewington,
+# covered under the GPL
 sub add_ds($$$$$$) {
     my ($rrd, $ds, $type, $heartbeat, $llim, $ulim) = @_;
     
+    if ($llim eq 'U') {
+	$llim = 'NaN';
+    }
+    if ($ulim eq 'U') {
+	$ulim = 'NaN';
+    }
+
     # we export the RRD to XML, munge the XML, then re-import it
     
     # first, BACK UP THE RRD!
@@ -409,40 +415,44 @@ sub add_ds($$$$$$) {
     my $last;
     my $fields = " ";
     my $datasource;
-    my $x;
 
     while (<IN>) {
 	if (($_ =~ s/$row_end$/$fields$row_end/) && $found_ds) {
 	    # need to hit <ds> types first, if we don't, we're screwed
-	    print $_; 
+	    print OUT; 
 	} elsif (/$cdp_prep_end/) {
-	    print "\t\t\t<ds><value> NaN </value>  <unknown_datapoints> 0 </unknown_datapoints></ds>\n" x $ds;
-	    print $_;
+	    print OUT "\t\t\t<ds>\n";
+	    print OUT "\t\t\t<primary_value> NaN </primary_value>\n";
+	    print OUT "\t\t\t<secondary_value> NaN </secondary_value>\n";
+	    print OUT "\t\t\t<value> 0.0000000000e+00 </value>\n";
+	    print OUT "\t\t\t<unknown_datapoints> 0 </unknown_datapoints>\n";
+	    print OUT "\t\t\t</ds>\n";
+	    print OUT;
 	} elsif (/$name_end$/) {
 	    ($datasource) = /$name (\w+)/;
 	    $found_ds++;
-	    print $_;
+	    print OUT;
 	} elsif (/Round Robin Archives/) {
 	    # print out additional datasource definitions
 	    ($num_sources) = ($datasource =~ /(\d+)/);
 
-	    for ($x = $num_sources+1; $x < $num_sources+$ds+1; $x++) {
+	    for (my $x = $num_sources; $x < $num_sources + 1; $x++) {
 		$fields .= $field;
-		print "\n\t<ds>\n";
-		print "\t\t<name> ds$x <\/name>\n";
-		print "\t\t<type> $type <\/type>\n";
-		print "\t\t<minimal_heartbeat> $heartbeat <\/minimal_heartbeat>\n";
-		print "\t\t<min> $llim <\/min>\n";
-		print "\t\t<max> $ulim <\/max>\n\n";
-		print "\t\t<!-- PDP Status-->\n";
-		print "\t\t<last_ds> NaN <\/last_ds>\n";
-		print "\t\t<value> NaN <\/value>\n";
-		print "\t\t<unknown_sec> NaN <\/unknown_sec>\n"; 
-		print "\t<\/ds>\n\n";
+		print OUT "\n\t<ds>\n";
+		print OUT "\t\t<name> $ds <\/name>\n";
+		print OUT "\t\t<type> $type <\/type>\n";
+		print OUT "\t\t<minimal_heartbeat> $heartbeat <\/minimal_heartbeat>\n";
+		print OUT "\t\t<min> $llim <\/min>\n";
+		print OUT "\t\t<max> $ulim <\/max>\n\n";
+		print OUT "\t\t<!-- PDP Status-->\n";
+		print OUT "\t\t<last_ds> 0 <\/last_ds>\n";
+		print OUT "\t\t<value> 0.0000000000e+00 <\/value>\n";
+		print OUT "\t\t<unknown_sec> 0 <\/unknown_sec>\n"; 
+		print OUT "\t<\/ds>\n\n";
 	    }
-	    print $_;
+	    print OUT;
 	} else {
-	    print $_;
+	    print OUT;
 	}
 	
 	$last = $_;
