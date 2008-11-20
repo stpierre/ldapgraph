@@ -1,0 +1,34 @@
+.graph-box {
+    background-color: #dddddd;
+    border: thin solid #eebbbb;
+    width: 90%;
+    padding: 10px;
+    margin: 10px;
+}
+
+.graph-image {
+    display: none;
+    clear: both;
+}
+
+.graph-header {
+    font-family: arial, sans-serif;
+    font-size: medium;
+    font-weight: bold;
+    float: left;
+}
+
+.show-hide {
+    text-align: right;
+}
+
+.header {
+    border: thin solid #eebbbb;
+    font-family: arial, sans-serif;
+    font-size: large;
+    font-weight: bolder;
+}
+
+body {
+    background-color: #ffffff;
+}

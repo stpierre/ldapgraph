@@ -21,7 +21,11 @@ my $ops_rrd = "$rrd_dir/fds_ops.rrd";
 my $connxn_rrd = "$rrd_dir/fds_connxn.rrd";
 my $tmp_dir = '/tmp/fedora-ds-graph'; # temporary directory to store the images
 
+# TODO: make changeable by end user
+my $aggregated = 1;
+
 my @graphs = (
+	      { title => 'Four Hour Graphs', seconds => 3600 * 4,            },
 	      { title => 'Day Graphs',       seconds => 3600 * 24,           },
 	      { title => 'Week Graphs',      seconds => 3600 * 24 * 7,       },
 	      { title => 'Month Graphs',     seconds => 3600 * 24 * 31,      },
@@ -42,6 +46,7 @@ my %color = (add    => '00B',
 	     plain  => 'B00',
 	     ssl    => '0B0',
 	     tls    => '00B',
+	     sasl   => 'B0B',
 	     );
 
 sub rrd_graph(@) {
@@ -51,7 +56,7 @@ sub rrd_graph(@) {
     my $end = time;
     $end -= $end % $step;
     my $date = localtime(time);
-    $date =~ s|:|\\:|g unless $RRDs::VERSION < 1.199908;
+    $date =~ s|:|\\:|g;
 
     my ($graphret, $xs, $ys) =
 	RRDs::graph($file,
@@ -67,8 +72,7 @@ sub rrd_graph(@) {
 		    '--color', 'SHADEA#ffffff',
 		    '--color', 'SHADEB#ffffff',
 		    '--color', 'BACK#ffffff',
-		    
-		    $RRDs::VERSION < 1.2002 ? () : ('--slope-mode'),
+		    '--slope-mode',
 
 		    @rrdargs,
 		    
@@ -84,7 +88,7 @@ sub graph_ops($$) {
     my $step = $range * $points_per_sample / $xpoints;
 
     my (@areas, @lines);
-    my @ops = qw(srch ext bind mod add del);
+    my @ops = qw(srch ext bind mod add del cmp modrdn);
 
     foreach my $op (@ops) {
 	push(@areas,
@@ -92,15 +96,10 @@ sub graph_ops($$) {
 	     "DEF:m$op=$ops_rrd:$op:MAX",
 	     "CDEF:d$op=$op,UN,0,$op,IF,$step,*",
 	     "CDEF:s$op=PREV,UN,d$op,PREV,IF,d$op,+",
-	     "AREA:$op#" . $color{$op} . ":" . substr(uc("$op    "), 0, 4) . ":STACK",
+	     "AREA:$op#" . $color{$op} . ":" . substr(uc("$op    "), 0, 4) . ($aggregated ? ":STACK" : ""),
 	     "GPRINT:s$op:MAX:\\t%12.0lf",
 	     "GPRINT:$op:AVERAGE:\\t%6.2lf",
 	     "GPRINT:m$op:MAX:\\t%6.0lf\\l",
-	     );
-
-	push(@lines,
-	     "CDEF:n$op=$op,-1,*",
-	     "LINE2:n$op#" . $color{$op},
 	     );
     }
 
@@ -151,7 +150,7 @@ sub graph_connxn($$) {
 	     "DEF:m$type=$connxn_rrd:$type:MAX",
 	     "CDEF:d$type=$type,UN,0,$type,IF,$step,*",
 	     "CDEF:s$type=PREV,UN,d$type,PREV,IF,d$type,+",
-	     "AREA:$type#" . $color{$type} . ":" . $types{$type} . ":STACK",
+	     "AREA:$type#" . $color{$type} . ":" . $types{$type} . ($aggregated ? ":STACK" : ""),
 	     "GPRINT:s$type:MAX:\\t%12.0lf",
 	     "GPRINT:$type:AVERAGE:\\t%6.2lf",
 	     "GPRINT:m$type:MAX:\\t%6.0lf\\l",
@@ -174,7 +173,7 @@ sub graph_connxn($$) {
 	 "CDEF:dplain=dconnxn,dtls,sasl,-,-",
 	 "CDEF:splain=sconnxn,stls,sasl,-,-",
 
-	 "AREA:plain#" . $color{plain} . ":Plaintext:STACK",
+	 "AREA:plain#" . $color{plain} . ":Plaintext:" . ($aggregated ? "STACK" : ""),
 	 "GPRINT:splain:MAX:\\t%12.0lf",
 	 "GPRINT:plain:AVERAGE:\\t%6.2lf",
 	 "GPRINT:mplain:MAX:\\t%6.0lf\\l",
@@ -213,23 +212,39 @@ sub print_html() {
     print "Content-Type: text/html\n\n";
 
     print <<HEADER;
-    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
-	<HTML>
-	<HEAD>
-	<TITLE>LDAP Statistics for $host</TITLE>
-	<META HTTP-EQUIV="Refresh" CONTENT="300">
-	<META HTTP-EQUIV="Pragma" CONTENT="no-cache">
-	</HEAD>
-	<BODY BGCOLOR="#FFFFFF">
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+  <head>
+    <title>LDAP Statistics for $host</title>
+    <meta http-equiv="Refresh" content="300" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <link rel="stylesheet" href="./ds-graph.css" type="text/css" />
+    <script language="JavaScript"><!--
+      function toggle(id) {
+         var obj = document.getElementById(id);
+	 if (obj.style.display == 'inline') {
+	    obj.style.display = 'none';
+	 } else {
+	    obj.style.display = 'inline';
+         }
+      }
+    //--></script>
+  </head>
+  <body>
+    <div class="header">LDAP Statistics for $host</div>
 HEADER
-
-	print "<H1>LDAP Statistics for $host</H1>\n";
+;
+    my $id = 0;
     for my $n (0..$#graphs) {
-	print '<div style="background: #dddddd; width: 632px">';
-	print "<H2>$graphs[$n]{title}</H2>\n";
+	print "<div class='graph-box'>\n";
+	print "<div class='graph-header'>" . $graphs[$n]{'title'} . "</div>\n";
+	print "<div class='show-hide'><a href='javascript: toggle(" . $id .
+	    "); toggle(" . ($id + 1) . ");'>Show/hide</a></div>\n";
+	print "<img src='" . $scriptname . "?" . $n . "-n' id='" . $id++ .
+	    "' border='0' class='graph-image' />\n";
+	print "<img src='" . $scriptname . "?" . $n . "-e' id='" . $id++ .
+	    "' border='0' class='graph-image' />\n";
 	print "</div>\n";
-	print "<P><IMG BORDER=\"0\" SRC=\"$scriptname?${n}-n\" ALT=\"fedora-ds-graph\">\n";
-	print "<P><IMG BORDER=\"0\" SRC=\"$scriptname?${n}-e\" ALT=\"fedora-ds-graph\">\n";
     }
 
     print <<FOOTER;

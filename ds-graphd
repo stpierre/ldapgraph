@@ -174,7 +174,7 @@ my $year;
 my $this_minute;
 my %sum = ( add => 0, srch => 0, bind => 0, mod => 0, del => 0, ext => 0,
 	    cmp => 0, modrdn => 0,
-	    connxn => 0, ssl => 0, tls => 0);
+	    connxn => 0, ssl => 0, tls => 0, sasl => 0);
 my $rrd_inited=0;
 
 my %opt = ();

@@ -15,7 +15,7 @@ Provides:  fedora-ds-graph
 Provides:  fdsgraph = %{version}
 Obsoletes: fdsgraph < 0.3.0
 
-Requires:  perl, rrdtool-perl, httpd
+Requires:  perl, rrdtool-perl > 1.2, httpd
 
 Source:    http://www.stpierreconsulting.com/files/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
@@ -47,7 +47,7 @@ mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/%{name}
 
 # cgis
 mkdir -p $RPM_BUILD_ROOT%{_datadir}/%{name}
-install -m 755 -o root -g apache ds-graph.cgi $RPM_BUILD_ROOT%{_datadir}/%{name}/ds-graph.cgi
+cp -R cgi/* $RPM_BUILD_ROOT%{_datadir}/%{name}
 
 # httpd config
 mkdir -p $RPM_BUILD_ROOT%{apacheconfdir}
@@ -69,7 +69,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/ds-graphd
 %{_initrddir}/ds-graph
 %{_localstatedir}/lib/%{name}
-%attr(-,root,apache) %{_datadir}/%{name}/ds-graph.cgi
+%attr(-,root,apache) %{_datadir}/%{name}
 
 %config(noreplace) %{_sysconfdir}/sysconfig/ds-graph
 %config(noreplace) %{apacheconfdir}/fedora-ds-graph.conf
