@@ -1,0 +1,6 @@
+- Track data from multiple FDS instances
+- Track GSSAPI connections
+- Easier pre-loading with old log data
+- Viewer can choose between aggregated and non-aggregated graphs in CGI
+
+$Id$

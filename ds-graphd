@@ -57,8 +57,8 @@ sub new($$;%) {
     my ($class, $file, %data) = @_;
     croak "new() requires one argument: file" unless defined $file;
     %data = () unless %data;
-    if (not defined($data{year})) {
-        $data{'year'} = (localtime(time))[5] + 1900;
+    if (not defined($data{'year'})) {
+        $data{'year'} = (localtime())[5] + 1900;
     }
     if (ref $file eq 'File::Tail') {
         $data{'filetail'} = 1;
@@ -259,7 +259,7 @@ if ($opt{'logfile'}) {
 
 my $file = File::Tail->new(name => $logfile, tail => -1);
 my $parser = new Parse::FDSlog($file,
-			       year => $opt{year},
+			       year => $opt{'year'},
 			       arrayref => 1);
 
 while(my $line = $parser->next()) {

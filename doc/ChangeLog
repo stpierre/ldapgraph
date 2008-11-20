@@ -1,4 +1,14 @@
-v1.0.2, NN-NNN-NNNN
+v1.1.0, 26-Nov-2008
+
+* Substantial changes to specfile and init scripts to bring Fedora DS
+  graph closer to compliance with Fedora packaging requirements
+* Streamlined log parser (thanks to Andrey Ivanov)
+* Added tracking of CMP and MODRDN operations, and SASL binds (thanks
+  to Andrey Ivanov)
+* Rewrote web interface to be much shinier
+* Fixed add_ds.pl code from 1.0.2 to actually work :)
+
+v1.0.2, 10-Apr-2008
 
 * De-deprecated -l logfile option
 * Added tracking of SASL binds/connections
@@ -38,3 +48,5 @@ v0.3, 28-Feb-2008
 v0.2, 21-Dec-2006
 
 * Added support for TLS connections to the connection graph
+
+$Id$

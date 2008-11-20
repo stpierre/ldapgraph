@@ -74,7 +74,7 @@ sub rrd_graph(@) {
 		    '--color', 'SHADEA#ffffff',
 		    '--color', 'SHADEB#ffffff',
 		    '--color', 'BACK#ffffff',
-		    '--slope-mode',
+		    ($RRDs::VERSION >= 1.3 ? '--full-size-mode' : ()),
 
 		    @rrdargs,
 		    

@@ -5,13 +5,11 @@
 Summary:   Fedora DS Graph
 Name:      fedora-ds-graph
 Version:   1.0.99
-Release:   3
+Release:   4%{dist}
 License:   GPLv2
 Group:     System Environment/Daemons
-Packager:  Chris St. Pierre <stpierre@nebrwesleyan.edu>
 BuildArch: noarch
 
-Provides:  fedora-ds-graph
 Provides:  fdsgraph = %{version}
 Obsoletes: fdsgraph < 0.3.0
 
@@ -25,7 +23,7 @@ fedora-ds-graph is a utility for graphing connections and operations
 from Fedora Directory Server.
 
 %prep
-%setup
+%setup -q
 
 %build
 
@@ -62,6 +60,7 @@ install -m 644 -o root -g root COPYING $RPM_BUILD_ROOT%{_docdir}/%{name}-%{versi
 
 %post
 /sbin/chkconfig --add ds-graph
+/sbin/service ds-graph start
 
 %clean
 rm -rf $RPM_BUILD_ROOT
