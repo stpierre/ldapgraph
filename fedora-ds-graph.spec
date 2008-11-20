@@ -5,7 +5,7 @@
 Summary:   Fedora DS Graph
 Name:      fedora-ds-graph
 Version:   1.0.99
-Release:   2
+Release:   3
 License:   GPLv2
 Group:     System Environment/Daemons
 Packager:  Chris St. Pierre <stpierre@nebrwesleyan.edu>
