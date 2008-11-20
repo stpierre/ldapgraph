@@ -18,10 +18,9 @@
 # Source function library.
 . /etc/init.d/functions
 
-# path to pid file
-PID_FILE=/var/run/ds-graph.pid
+LOCK_FILE=/var/lock/subsys/ds-graph
 
-. /etc/sysconfig/ds-graph
+[ -e /etc/sysconfig/ds-graph ] && . /etc/sysconfig/ds-graph
 
 PATH=/bin:/usr/bin
 
@@ -33,26 +32,27 @@ case "$1" in
 	    ARGS="-I ${INSTANCE}"
 	fi
 
-	ARGS="${ARGS} -d --pidfile=${PID_FILE} --rrddir=${RRD_DIR}"
-
-	echo "Starting ds-graph";
-	if [ -e ${PID_FILE} ]; then
-	    echo "ds-graph already running";
-	else
-	    touch /var/lock/subsys/ds-graph
-	    daemon ${DS_GRAPHD} ${ARGS}
+	if [ "x${PIDFILE}" != "x" ]; then
+	    ARGS="${ARGS} --pidfile=${PID_FILE}"
 	fi
+
+	ARGS="${ARGS} -d --rrddir=${RRD_DIR}"
+
+	echo -n $"Starting ds-graph";
+	daemon ${DS_GRAPHD} ${ARGS}
+	RETVAL=$?
+	echo
+	[ ${RETVAL} -eq 0] && touch ${LOCK_FILE}
+	return ${RETVAL}
 	;;
 
     'stop')
 	echo "Stopping ds-graph";
-	if [ -f ${PID_FILE} ]; then
-	    kill `cat ${PID_FILE}`
-	    rm ${PID_FILE}
-	    rm /var/lock/subsys/ds-graph
-	else
-	    echo "ds-graph not running";
-	fi
+	killproc ${DS_GRAPHD}
+	RETVAL=$?
+	echo
+	[ ${RETVAL} -eq 0] && rm ${LOCK_FILE}
+	return ${RETVAL}
 	;;
 
     'restart')
