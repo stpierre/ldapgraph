@@ -329,6 +329,15 @@ sub init_rrd($) {
 	warn "create of $ops_rrd failed: $err\n" if $err;
 	$this_minute = $m;
     } elsif (-f $ops_rrd) {
+	# CMP and MODRDN op tracking added in v1.0.3;
+	# upgrade old DBs if necessary
+	foreach my $op (qw(cmp modrdn)) {
+	    chomp(my $has_op = `rrdtool info $ops_rrd | grep -F 'ds[$op]' | wc -l`);
+	    if (!$has_op) {
+		add_ds($ops_rrd, $op, 'GAUGE', $rrdstep * 2, 0, 'U');
+	    }
+	}
+
 	$this_minute = RRDs::last($ops_rrd) + $rrdstep;
     }    
 
@@ -351,16 +360,13 @@ sub init_rrd($) {
 	warn "create of $connxn_rrd failed: $err\n" if $err;
 	$this_minute = $m;
     } elsif (-f $connxn_rrd) {
-	# TLS tracking added in v0.3; upgrade old DBs if necessary
-	chomp(my $has_tls = `rrdtool info $connxn_rrd | grep -F 'ds[tls]' | wc -l`);
-	if (!$has_tls) {
-	    add_ds($connxn_rrd, 'tls', 'GAUGE', $rrdstep * 2, 0, 'U');
-	}
-
-	# SASL bind tracking added in v1.0.2; upgrade old DBs if necessary
-	chomp(my $has_sasl = `rrdtool info $connxn_rrd | grep -F 'ds[sasl]' | wc -l`);
-	if (!$has_sasl) {
-	    add_ds($connxn_rrd, 'sasl', 'GAUGE', $rrdstep * 2, 0, 'U');
+	# TLS tracking added in v0.3, SASL bind tracking added in v1.0.2
+	# upgrade old DBs if necessary
+	foreach my $conn (qw(tls sasl)) {
+	    chomp(my $has_conn = `rrdtool info $connxn_rrd | grep -F 'ds[$conn]' | wc -l`);
+	    if (!$has_conn) {
+		add_ds($connxn_rrd, $conn, 'GAUGE', $rrdstep * 2, 0, 'U');
+	    }
 	}
 
 	$this_minute = RRDs::last($connxn_rrd) + $rrdstep;
