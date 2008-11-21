@@ -36,7 +36,7 @@ case "$1" in
 
 	ARGS="${ARGS} -d --rrddir=${RRD_DIR}"
 
-	echo -n $"Starting ds-graph";
+	echo -n "Starting ds-graph";
 	daemon ${DS_GRAPHD} ${ARGS}
 	RETVAL=$?
 	echo
@@ -45,7 +45,7 @@ case "$1" in
 	;;
 
     'stop')
-	echo "Stopping ds-graph";
+	echo -n "Stopping ds-graph";
 	killproc ${DS_GRAPHD}
 	RETVAL=$?
 	echo

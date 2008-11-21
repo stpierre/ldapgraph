@@ -212,7 +212,9 @@ if ($opt{'logfile'}) {
 		 -r "/opt/fedora-ds/slapd-$instance") {
 	    $fds_version = "1.0";
 	} else {
-	    die "Could not read or locate logs in either /var/log/dirsrv/slapd-$instance or /opt/fedora-ds/slapd-$instance\n";
+	    die "Could not read or locate logs in either " .
+		"/var/log/dirsrv/slapd-$instance or " .
+		"/opt/fedora-ds/slapd-$instance\n";
 	}
     } else { # no instance specified on the command line
 	# try to determine the instance
@@ -221,7 +223,8 @@ if ($opt{'logfile'}) {
 	} elsif (-d "/var/log/dirsrv" && -r "/var/log/dirsrv") {
 	    $fds_version = "1.1";
 	} else {
-	    die "No installation of Fedora DS 1.0 (/opt/fedora-ds) or 1.1 (/var/log/dirsrv) found\n";
+	    die "No installation of Fedora DS 1.0 (/opt/fedora-ds) or 1.1 " .
+		"(/var/log/dirsrv) found\n";
 	}
 	
 	my $fdsroot;
@@ -270,12 +273,12 @@ sub usage {
     print "usage: ds-graphd [*options*]\n\n";
     print "  -h, --help          display this help and exit\n";
     print "  -V, --version       output version information and exit\n";
-    print "  -I, --instance=INST specify instance; do not include the slapd-\n";                 
+    print "  -I, --instance=INST FDS instance; do not include the slapd-\n";
     print "  -l, --logfile=FILE  monitor FILE (deprecated; use -I)\n";
     print "  -y, --year          starting year of the log file (default: current year)\n";
     print "  -d, --daemon        start in the background\n";
-    print "  --pidfile=FILE      write PID to FILE instead of /var/run/ds-graph.pid\n";
-    print "  --rrddir=DIR        write RRDs to DIR instead of .\n";    
+    print "  --pidfile=FILE      write PID to FILE instead of $pidfile\n";
+    print "  --rrddir=DIR        write RRDs to DIR instead of $rrd_dir\n";    
     exit;
 }
 
@@ -373,8 +376,8 @@ sub init_rrd($) {
     $rrd_inited = 1;
 }
 
-# much code for add_ds taken from add_ds.pl, Copyright (C) 2000 Selena M. Brewington,
-# covered under the GPL
+# much code for add_ds taken from add_ds.pl,
+# Copyright (C) 2000 Selena M. Brewington, covered under the GPL
 sub add_ds($$$$$$) {
     my ($rrd, $ds, $type, $heartbeat, $llim, $ulim) = @_;
     
@@ -484,7 +487,8 @@ sub process_line($) {
 	    event($time, 'unsasl');
 	} elsif ($op =~ /^EXT$/) {
 	    event($time, 'ext');
-	    event($time, 'tls') if $text =~ /oid="1\.3\.6\.1\.4\.1\.1466\.20037"/;
+	    event($time, 'tls')
+		if $text =~ /oid="1\.3\.6\.1\.4\.1\.1466\.20037"/;
 	} elsif ($op =~ /^SSL$/ && $text =~ /^connection from/) {
 	    event($time, 'ssl');
 	}

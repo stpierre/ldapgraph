@@ -59,7 +59,6 @@ install -m 644 -o root -g root doc/* $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version
 
 %post
 /sbin/chkconfig --add ds-graph
-/sbin/service ds-graph start
 
 %clean
 rm -rf $RPM_BUILD_ROOT
