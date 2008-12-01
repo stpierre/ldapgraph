@@ -272,9 +272,8 @@ while(my $line = $parser->next()) {
 sub usage {
     print "usage: ds-graphd [*options*]\n\n";
     print "  -h, --help          display this help and exit\n";
-    print "  -V, --version       output version information and exit\n";
     print "  -I, --instance=INST FDS instance; do not include the slapd-\n";
-    print "  -l, --logfile=FILE  monitor FILE (deprecated; use -I)\n";
+    print "  -l, --logfile=FILE  monitor FILE (generally, use -I instead)\n";
     print "  -y, --year          starting year of the log file (default: current year)\n";
     print "  -d, --daemon        start in the background\n";
     print "  --pidfile=FILE      write PID to FILE instead of $pidfile\n";

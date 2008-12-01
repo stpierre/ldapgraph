@@ -56,6 +56,8 @@ install -m 644 -o root -g root fedora-ds-graph.conf $RPM_BUILD_ROOT%{apacheconfd
 # documentation
 mkdir -p $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}
 install -m 644 -o root -g root doc/* $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}
+mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
+install -m 644 -o root -g root man/ds-graphd.1.gz $RPM_BUILD_ROOT%{_mandir}/man1/ds-graphd.1.gz
 
 %post
 /sbin/chkconfig --add ds-graph

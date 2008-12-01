@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: ds-graph.cgi 30 2008-11-20 15:35:09Z stpierre $
+# $Id$
 
 # fedora-ds-graph -- An rrdtool-based graphing tool for Fedora DS statistics
 # copyright (c) 2006-2008 Chris St. Pierre <chris.a.st.pierre@gmail.com>
