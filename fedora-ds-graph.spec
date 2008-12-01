@@ -76,6 +76,7 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{apacheconfdir}/fedora-ds-graph.conf
 
 %doc %{_docdir}/%{name}-%{version}
+%doc %{_mandir}/man1/ds-graphd.1.gz
 
 %package selinux
 Summary:   Fedora DS Graph
