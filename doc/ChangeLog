@@ -7,7 +7,8 @@ v1.1.0, 26-Nov-2008
   to Andrey Ivanov)
 * Rewrote web interface to be much shinier
 * Fixed add_ds.pl code from 1.0.2 to actually work :)
-
+* Added man page
+	
 v1.0.2, 10-Apr-2008
 
 * De-deprecated -l logfile option
