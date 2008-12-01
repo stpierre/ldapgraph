@@ -3,7 +3,7 @@
 # $Id: ds-graph.cgi 30 2008-11-20 15:35:09Z stpierre $
 
 # fedora-ds-graph -- An rrdtool-based graphing tool for Fedora DS statistics
-# copyright (c) 2006-2008 Chris St. Pierre <stpierre@nebrwesleyan.edu>
+# copyright (c) 2006-2008 Chris St. Pierre <chris.a.st.pierre@gmail.com>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 

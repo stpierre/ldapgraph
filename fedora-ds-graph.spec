@@ -4,8 +4,8 @@
 
 Summary:   Fedora DS Graph
 Name:      fedora-ds-graph
-Version:   1.0.99
-Release:   4%{dist}
+Version:   1.1.0
+Release:   1%{dist}
 License:   GPLv2
 Group:     System Environment/Daemons
 BuildArch: noarch
@@ -97,11 +97,11 @@ if [ $1 -eq 0 ] ; then  # final removal
 fi
 
 %changelog
-* Thu Nov 20 2008 Chris St. Pierre <stpierre@NebrWesleyan.edu> - 
+* Thu Nov 20 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 
 - Added selinux package
 
-* Thu Aug 14 2008 Chris St. Pierre <stpierre@NebrWesleyan.edu> - 
+* Thu Aug 14 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 
 - Substantially edited to conform closer to Fedora packaging guidelines
 
-* Thu Feb 28 2008 Chris St. Pierre <stpierre@NebrWesleyan.edu> - 
+* Thu Feb 28 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 
 - Created
