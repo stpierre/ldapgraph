@@ -3,10 +3,8 @@ should work with both FDS 1.0.x and 1.1.x.
 
 Ideally, after installing, you should just have to run:
 
-# service httpd restart
-
-To get the Apache configs in place; it will automatically start
-analyzing your logs.
+# service ds-graph start
+# service httpd graceful
 
 The web interface can be found at
 http://yourhost.example.com/fedora-ds-graph/cgi-bin/ds-graph.cgi

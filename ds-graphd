@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 # $Id$
 #
@@ -7,154 +7,19 @@
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 
-######## Parse::FDSlog 0.2 ########
-package Parse::FDSlog;
-use Carp;
-use Symbol;
-use Time::Local;
+#!/usr/bin/perl -w
+
+# $Id$
+
 use strict;
-use vars qw($VERSION);
-my %months_map = (
-    'jan' => 0, 'feb' => 1, 'mar' => 2,
-    'apr' => 3, 'may' => 4, 'jun' => 5,
-    'jul' => 6, 'aug' => 7, 'sep' => 8,
-    'oct' => 9, 'nov' =>10, 'dec' =>11,
-    );
-
-# year-increment algorithm: if in january, if december is seen, decrement year
-my $enable_year_decrement = 1;
-
-# fast timelocal, cache minute's timestamp
-# don't cache more than minute because of daylight saving time switch
-my @str2time_last_minute;
-my $str2time_last_minute_timestamp;
-# 0: sec, 1: min, 2: h, 3: day, 4: month, 5: year
-
-sub str2time($$$$$$$) {
-    my $GMT = pop @_;
-    if(defined $str2time_last_minute[4] and
-       $str2time_last_minute[0] == $_[1] and
-       $str2time_last_minute[1] == $_[2] and
-       $str2time_last_minute[2] == $_[3] and
-       $str2time_last_minute[3] == $_[4] and
-       $str2time_last_minute[4] == $_[5])
-    {
-        return $str2time_last_minute_timestamp + $_[0];
-    }
-    my $time;
-    if($GMT) {
-        $time = timegm(@_);
-    }
-    else {
-        $time = timelocal(@_);
-    }
-    @str2time_last_minute = @_[1..5];
-    $str2time_last_minute_timestamp = $time-$_[0];
-    return $time;
-}
-
-sub new($$;%) {
-    my ($class, $file, %data) = @_;
-    croak "new() requires one argument: file" unless defined $file;
-    %data = () unless %data;
-    if (not defined($data{'year'})) {
-        $data{'year'} = (localtime())[5] + 1900;
-    }
-    if (ref $file eq 'File::Tail') {
-        $data{'filetail'} = 1;
-        $data{'file'} = $file;
-    } else {
-        $data{'file'} = Symbol::gensym();
-        open($data{'file'}, "<$file") or croak "can't open $file: $!";
-    }
-    return bless(\%data, $class);
-}
-
-sub _year_increment($$) {
-    my ($self, $mon) = @_;
-    # year change
-    if ($mon == 0) {
-        $self->{'year'}++
-	    if defined($self->{'_last_mon'}) and $self->{'_last_mon'} == 11;
-        $enable_year_decrement = 1;
-    } elsif($mon == 11) {
-        if($enable_year_decrement) {
-            $self->{'year'}--
-		if defined($self->{'_last_mon'}) and $self->{'_last_mon'} != 11;
-        }
-    } else {
-        $enable_year_decrement = 0;
-    }
-    $self->{'_last_mon'} = $mon;
-}
-
-sub _next_line($) {
-    my $self = shift;
-    my $f = $self->{'file'};
-    if(defined $self->{'filetail'}) {
-        return $f->read();
-    }
-    else {
-        return <$f>;
-    }
-}
-
-sub next($) {
-    my ($self) = @_;
-  line: while(my $str = $self->_next_line()) {
-      # when FDS starts up, it generates three lines at the top of its logs
-      # that aren't in the same format as the rest of the logs.  The first
-      # two start with whitespace, and the third is blank.
-      next if $str =~ /^\s+/;
-      next if $str =~ /^$/;
-
-      $str =~ /^
-	  \[(\d+)\/(\S+)\/\d+  # date - 1, 2
-	  \:
-	  (\d+)\:(\d+)\:(\d+)\s+[\-\+]\d+\]  # time - 3, 4, 5
-	  \s+conn=\d+\s
-	  (?:(?:op|fd)=-?\d+\s)?
-	  (?:(?:fd|slot)=-?\d+\s)?
-	  ([A-Z]*)              # operation - 6
-	  \s?
-	  (.*)                  # text - 7
-	  $/x
-	  or do {
-	      warn "WARNING: line not in FDS log format: $str";
-	      next line;
-      };
-      my $mon = $months_map{lc($2)};
-      croak "unknown month $1\n" unless defined($mon);
-      $self->_year_increment($mon);
-
-      # convert to unix time
-      my $time = str2time($5, $4, $3, $1, $mon, $self->{year}-1900,
-			  $self->{'GMT'});
-      # accept maximum one day in the present future
-      if($time - time > 86400) {
-	  warn "WARNING: ignoring future date in log line: $str\n";
-	  next line;
-      }
-      my ($op, $text) = ($6, $7);
-      $self->{'_last_data'}{$op} = [$time, $op, $text];
-      return $self->{'_last_data'}{$op};
-  }
-    return undef;
-}
-
-#####################################################################
-#####################################################################
-#####################################################################
-
-package main;
-
+use warnings;
 use RRDs;
-use strict;
 use File::Tail;
 use Getopt::Long;
 use POSIX 'setsid';
+use Parse::FDSlog;
 
-my $VERSION = "1.1.0";
+my $VERSION = "1.1.1";
 
 # config
 my $rrdstep = 60;
@@ -176,12 +41,6 @@ my %sum = ( add => 0, srch => 0, bind => 0, mod => 0, del => 0, ext => 0,
 my $rrd_inited=0;
 
 my %opt = ();
-
-# prototypes
-sub daemonize();
-sub process_line($);
-sub init_rrd($);
-sub update($);
 
 Getopt::Long::Configure('no_ignore_case');
 GetOptions(\%opt,
@@ -265,7 +124,7 @@ my $parser = new Parse::FDSlog($file,
 			       year => $opt{'year'},
 			       arrayref => 1);
 
-while(my $line = $parser->next()) {
+while(my $line = $parser->nextline()) {
     process_line($line);
 }
 
@@ -281,24 +140,28 @@ sub usage {
     exit;
 }
 
-sub daemonize() {
-    open STDIN, '/dev/null' or die "ds-graphd: can't read /dev/null: $!";
-    open STDOUT, '>/dev/null' or die "ds-graphd: can't write to /dev/null: $!";
+sub daemonize {
+    open STDIN, '<', '/dev/null'
+	or die "ds-graphd: can't read /dev/null: $!";
+    open STDOUT, '>', '/dev/null'
+	or die "ds-graphd: can't write to /dev/null: $!";
+
     defined(my $pid = fork) or die "ds-graphd: can't fork: $!";
     if ($pid) {
 	# parent
-	open PIDFILE, ">$pidfile"
+	open my $PIDFILE, ">", $pidfile
 	    or die "ds-graphd: can't write to $pidfile: $!\n";
-	print PIDFILE "$pid\n";
-	close(PIDFILE);
+	print $PIDFILE "$pid\n";
+	close($PIDFILE);
 	exit;
     }
     # child
     setsid or die "ds-graphd: can't start a new session: $!";
-    open STDERR, '>&STDOUT' or die "ds-graphd: can't dup stdout: $!";
+    open STDERR, '>', '&STDOUT' or die "ds-graphd: can't dup stdout: $!";
+    return;
 }
 
-sub init_rrd($) {
+sub init_rrd {
     my $m = shift;
     my $rows = $xpoints / $points_per_sample;
     my $realrows = int($rows * 1.1); # ensure that the full range is covered
@@ -373,11 +236,12 @@ sub init_rrd($) {
     }
 
     $rrd_inited = 1;
+    return;
 }
 
 # much code for add_ds taken from add_ds.pl,
 # Copyright (C) 2000 Selena M. Brewington, covered under the GPL
-sub add_ds($$$$$$) {
+sub add_ds {
     my ($rrd, $ds, $type, $heartbeat, $llim, $ulim) = @_;
     
     if ($llim eq 'U') {
@@ -391,19 +255,6 @@ sub add_ds($$$$$$) {
     
     # first, BACK UP THE RRD!
     system("cp $rrd $rrd.bak");
-
-    # export to XML
-    system("rrdtool dump $rrd $rrd.xml");
-    open(IN, "$rrd.xml") or do {
-	warn "Couldn't open $rrd.xml for read; conversion of RRD was not successful";
-	return 0;
-    };
-
-    # open file to write munged XML to
-    open(OUT, ">$rrd-fixed.xml") or do {
-	warn "Couldn't open $rrd-fixed.xml for write: conversion of RRD was not successful";
-	return 0;
-    };
 
     my $cdp_prep_end = '</cdp_prep>';
     
@@ -419,57 +270,76 @@ sub add_ds($$$$$$) {
     my $fields = " ";
     my $datasource;
 
-    while (<IN>) {
+    # export to XML
+    system("rrdtool dump $rrd $rrd.xml");
+
+    # input XML
+    open(my $IN, '<', "$rrd.xml") or do {
+	warn "Couldn't open $rrd.xml for read: $!\n";
+	warn "Conversion of RRD was not successful\n";
+	return;
+    };
+
+    # open file to write munged XML to
+    open(my $OUT, '>', "$rrd-fixed.xml") or do {
+	warn "Couldn't open $rrd-fixed.xml for write: $!\n";
+	warn "Conversion of RRD was not successful\n";
+	return;
+    };
+
+    while (<$IN>) {
 	if (($_ =~ s/$row_end$/$fields$row_end/) && $found_ds) {
 	    # need to hit <ds> types first, if we don't, we're screwed
-	    print OUT; 
+	    print $OUT; 
 	} elsif (/$cdp_prep_end/) {
-	    print OUT "\t\t\t<ds>\n";
-	    print OUT "\t\t\t<primary_value> NaN </primary_value>\n";
-	    print OUT "\t\t\t<secondary_value> NaN </secondary_value>\n";
-	    print OUT "\t\t\t<value> 0.0000000000e+00 </value>\n";
-	    print OUT "\t\t\t<unknown_datapoints> 0 </unknown_datapoints>\n";
-	    print OUT "\t\t\t</ds>\n";
-	    print OUT;
+	    print $OUT "\t\t\t<ds>\n";
+	    print $OUT "\t\t\t<primary_value> NaN </primary_value>\n";
+	    print $OUT "\t\t\t<secondary_value> NaN </secondary_value>\n";
+	    print $OUT "\t\t\t<value> 0.0000000000e+00 </value>\n";
+	    print $OUT "\t\t\t<unknown_datapoints> 0 </unknown_datapoints>\n";
+	    print $OUT "\t\t\t</ds>\n";
+	    print $OUT;
 	} elsif (/$name_end$/) {
 	    ($datasource) = /$name (\w+)/;
 	    $found_ds++;
-	    print OUT;
+	    print $OUT;
 	} elsif (/Round Robin Archives/) {
 	    # print out additional datasource definitions
 	    ($num_sources) = ($datasource =~ /(\d+)/);
 
 	    for (my $x = $num_sources; $x < $num_sources + 1; $x++) {
 		$fields .= $field;
-		print OUT "\n\t<ds>\n";
-		print OUT "\t\t<name> $ds <\/name>\n";
-		print OUT "\t\t<type> $type <\/type>\n";
-		print OUT "\t\t<minimal_heartbeat> $heartbeat <\/minimal_heartbeat>\n";
-		print OUT "\t\t<min> $llim <\/min>\n";
-		print OUT "\t\t<max> $ulim <\/max>\n\n";
-		print OUT "\t\t<!-- PDP Status-->\n";
-		print OUT "\t\t<last_ds> 0 <\/last_ds>\n";
-		print OUT "\t\t<value> 0.0000000000e+00 <\/value>\n";
-		print OUT "\t\t<unknown_sec> 0 <\/unknown_sec>\n"; 
-		print OUT "\t<\/ds>\n\n";
+		print $OUT "\n\t<ds>\n";
+		print $OUT "\t\t<name> $ds <\/name>\n";
+		print $OUT "\t\t<type> $type <\/type>\n";
+		print $OUT "\t\t<minimal_heartbeat> $heartbeat <\/minimal_heartbeat>\n";
+		print $OUT "\t\t<min> $llim <\/min>\n";
+		print $OUT "\t\t<max> $ulim <\/max>\n\n";
+		print $OUT "\t\t<!-- PDP Status-->\n";
+		print $OUT "\t\t<last_ds> 0 <\/last_ds>\n";
+		print $OUT "\t\t<value> 0.0000000000e+00 <\/value>\n";
+		print $OUT "\t\t<unknown_sec> 0 <\/unknown_sec>\n"; 
+		print $OUT "\t<\/ds>\n\n";
 	    }
-	    print OUT;
+	    print $OUT;
 	} else {
-	    print OUT;
+	    print $OUT;
 	}
 	
 	$last = $_;
     }
 
-    close(IN);
-    close(OUT);
+    close($OUT);
+    close($IN);
 
     # import from fixed XML
     unlink($rrd);
     system("rrdtool restore $rrd-fixed.xml $rrd");
+
+    return;
 }
 
-sub process_line($) {
+sub process_line {
     my $sl = shift;
     my $time = $sl->[0];
     my $op   = $sl->[1];
@@ -496,15 +366,18 @@ sub process_line($) {
 	    event($time, 'connxn');
 	}
     }
+
+    return;
 }
 
-sub event($$) {
+sub event {
     my ($t, $type) = @_;
     update($t) and $sum{$type}++;
+    return;
 }
 
 # returns 1 if $sum should be updated
-sub update($) {
+sub update {
     my $t = shift;
     my $m = $t - $t % $rrdstep;
     init_rrd($m) unless $rrd_inited;
