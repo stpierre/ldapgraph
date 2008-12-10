@@ -11,6 +11,7 @@ use warnings;
 use strict;
 use RRDs;
 use POSIX qw(uname);
+use CGI;
 
 my $host = (POSIX::uname())[1];
 my $scriptname = 'ds-graph.cgi';
@@ -72,9 +73,51 @@ if(defined($img) and $img =~ /\S/) {
     } else {
 	die "ERROR: invalid argument\n";
     }
-}
-else {
-    print_html();
+} else {
+    my $jstoggle = <<EOJS;
+    function toggle(id) {
+	var obj = document.getElementById(id);
+	if (obj.style.display == 'inline') {
+	    obj.style.display = 'none';
+	} else {
+	    obj.style.display = 'inline';
+	}
+    }
+EOJS
+
+    my $cgi = new CGI;
+    print $cgi->header();
+    print $cgi->start_html(-title  => "LDAP Statistics for $host",
+			   -style  => {src => "../ds-graph.css"},
+			   -script => $jstoggle,
+			   -head   => [meta({-http_equiv => 'Refresh',
+					     -content    => '300'}),
+				       meta({-http_equiv => 'Pragma',
+					     -content    => 'no-cache'})]);
+    print $cgi->div(-class => 'header', "LDAP Statistics for $host");
+    my $id = 0;
+    for my $n (0..$#graphs) {
+	print $cgi->div(-class => 'graph-box',
+			$cgi->div(-class => 'graph-header',
+				  $graphs[$n]{'title'}),
+			$cgi->div(-class => 'show-hide',
+				  $cgi->a(-href => "javascript: toggle(" . $id . "); toggle(" . ($id + 1) . ");",
+					  "Show/hide"),
+				  $cgi->img(-src    => $scriptname . "?" . $n . "-n' id='" . $id++,
+					    -border => 0,
+					    -class  => "graph-image"),
+				  $cgi->img(-src    => $scriptname . "?" . $n . "-e' id='" . $id++,
+					    -border => 0,
+					    -class  => "graph-image")));
+    }
+
+    print $cgi->a(-href => "http://oss.oetiker.ch/rrdtool/",
+		  img(-src => "../rrdtool.png",
+		      -border => 0,
+		      -width => 128,
+		      -height => 48));
+    print $cgi->end_html();
+;
 }
 
 ##################################################
@@ -242,55 +285,6 @@ sub graph_connxn {
 
     return;
 }
-
-sub print_html {
-    print "Content-Type: text/html\n\n";
-
-    print <<HEADER;
-<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
-<html>
-  <head>
-    <title>LDAP Statistics for $host</title>
-    <meta http-equiv="Refresh" content="300" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <link rel="stylesheet" href="../ds-graph.css" type="text/css" />
-    <script language="JavaScript"><!--
-      function toggle(id) {
-         var obj = document.getElementById(id);
-	 if (obj.style.display == 'inline') {
-	    obj.style.display = 'none';
-	 } else {
-	    obj.style.display = 'inline';
-         }
-      }
-    //--></script>
-  </head>
-  <body>
-    <div class="header">LDAP Statistics for $host</div>
-HEADER
-;
-    my $id = 0;
-    for my $n (0..$#graphs) {
-	print "<div class='graph-box'>\n";
-	print "<div class='graph-header'>" . $graphs[$n]{'title'} . "</div>\n";
-	print "<div class='show-hide'><a href='javascript: toggle(" . $id .
-	    "); toggle(" . ($id + 1) . ");'>Show/hide</a></div>\n";
-	print "<img src='" . $scriptname . "?" . $n . "-n' id='" . $id++ .
-	    "' border='0' class='graph-image' />\n";
-	print "<img src='" . $scriptname . "?" . $n . "-e' id='" . $id++ .
-	    "' border='0' class='graph-image' />\n";
-	print "</div>\n";
-    }
-
-    print <<FOOTER;
-    <a href="http://oss.oetiker.ch/rrdtool/"><img src="../rrdtool.png" border="0" width="128" height="48" /></a>
-  </body>
-</html>
-FOOTER
-;
-
-    return;
-    }
 
 sub send_image {
     my $file = shift;
