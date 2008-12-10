@@ -50,8 +50,8 @@ mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/%{name}
 # web stuff
 mkdir -p $RPM_BUILD_ROOT%{_datadir}/%{name}/cgi-bin
 install -m 755 -o root -g apache www/ds-graph.cgi $RPM_BUILD_ROOT%{_datadir}/%{name}/cgi-bin/ds-graph.cgi
-install -m 755 -o root -g apache www/ds-graph.css $RPM_BUILD_ROOT%{_datadir}/%{name}/ds-graph.css
-install -m 755 -o root -g apache www/rrdtool.png $RPM_BUILD_ROOT%{_datadir}/%{name}/rrdtool.png
+install -m 644 -o root -g apache www/ds-graph.css $RPM_BUILD_ROOT%{_datadir}/%{name}/ds-graph.css
+install -m 644 -o root -g apache www/rrdtool.png $RPM_BUILD_ROOT%{_datadir}/%{name}/rrdtool.png
 
 # httpd config
 mkdir -p $RPM_BUILD_ROOT%{apacheconfdir}

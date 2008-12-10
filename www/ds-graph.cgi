@@ -61,7 +61,7 @@ mkdir $tmp_dir, 0777 unless -d $tmp_dir;
 mkdir "$tmp_dir/$uri", 0777 unless -d "$tmp_dir/$uri";
 
 my $img = $ENV{'QUERY_STRING'};
-if(defined($img) and $img =~ /\S/) {
+if (defined($img) and $img =~ /\S/) {
     if ($img =~ /^(\d+)-n$/) {
 	my $file = "$tmp_dir/$uri/fds_ops_$1.png";
 	graph_ops($graphs[$1]{'seconds'}, $file);
@@ -90,32 +90,34 @@ EOJS
     print $cgi->start_html(-title  => "LDAP Statistics for $host",
 			   -style  => {src => "../ds-graph.css"},
 			   -script => $jstoggle,
-			   -head   => [meta({-http_equiv => 'Refresh',
-					     -content    => '300'}),
-				       meta({-http_equiv => 'Pragma',
-					     -content    => 'no-cache'})]);
-    print $cgi->div(-class => 'header', "LDAP Statistics for $host");
+			   -head   => [$cgi->meta({-http_equiv => 'Refresh',
+						   -content    => '300'}),
+				       $cgi->meta({-http_equiv => 'Pragma',
+						   -content    => 'no-cache'})]);
+    print $cgi->div({-class => 'header'}, "LDAP Statistics for $host");
     my $id = 0;
     for my $n (0..$#graphs) {
-	print $cgi->div(-class => 'graph-box',
-			$cgi->div(-class => 'graph-header',
+	print $cgi->div({-class => 'graph-box'},
+			$cgi->div({-class => 'graph-header'},
 				  $graphs[$n]{'title'}),
-			$cgi->div(-class => 'show-hide',
-				  $cgi->a(-href => "javascript: toggle(" . $id . "); toggle(" . ($id + 1) . ");",
-					  "Show/hide"),
-				  $cgi->img(-src    => $scriptname . "?" . $n . "-n' id='" . $id++,
-					    -border => 0,
-					    -class  => "graph-image"),
-				  $cgi->img(-src    => $scriptname . "?" . $n . "-e' id='" . $id++,
-					    -border => 0,
-					    -class  => "graph-image")));
+			$cgi->div({-class => 'show-hide'},
+				  $cgi->a({-href => "javascript: toggle(" . $id . "); toggle(" . ($id + 1) . ");"},
+					  "Show/hide")),
+			$cgi->img({-src    => $scriptname . "?" . $n . "-n",
+				   -id     => $id++,
+				   -border => 0,
+				   -class  => "graph-image"}),
+			$cgi->img({-src    => $scriptname . "?" . $n . "-e",
+				   -id     => $id++,
+				   -border => 0,
+				   -class  => "graph-image"}));
     }
 
-    print $cgi->a(-href => "http://oss.oetiker.ch/rrdtool/",
-		  img(-src => "../rrdtool.png",
-		      -border => 0,
-		      -width => 128,
-		      -height => 48));
+    print $cgi->a({-href => "http://oss.oetiker.ch/rrdtool/"},
+		  $cgi->img({-src => "../rrdtool.png",
+			     -border => 0,
+			     -width => 128,
+			     -height => 48}));
     print $cgi->end_html();
 ;
 }
