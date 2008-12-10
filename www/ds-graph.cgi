@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 # $Id$
 
@@ -7,6 +7,8 @@
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 
+use warnings;
+use strict;
 use RRDs;
 use POSIX qw(uname);
 
@@ -49,7 +51,35 @@ my %color = (add    => '00B',
 	     sasl   => 'B0B',
 	     );
 
-sub rrd_graph(@) {
+
+my $uri = $ENV{'REQUEST_URI'} || '';
+$uri =~ s/\/[^\/]+$//;
+$uri =~ s/\//,/g;
+$uri =~ s/(\~|\%7E)/tilde,/g;
+mkdir $tmp_dir, 0777 unless -d $tmp_dir;
+mkdir "$tmp_dir/$uri", 0777 unless -d "$tmp_dir/$uri";
+
+my $img = $ENV{'QUERY_STRING'};
+if(defined($img) and $img =~ /\S/) {
+    if ($img =~ /^(\d+)-n$/) {
+	my $file = "$tmp_dir/$uri/fds_ops_$1.png";
+	graph_ops($graphs[$1]{'seconds'}, $file);
+	send_image($file);
+    } elsif ($img =~ /^(\d+)-e$/) {
+	my $file = "$tmp_dir/$uri/fds_connxn_$1.png";
+	graph_connxn($graphs[$1]{'seconds'}, $file);
+	send_image($file);
+    } else {
+	die "ERROR: invalid argument\n";
+    }
+}
+else {
+    print_html();
+}
+
+##################################################
+
+sub rrd_graph {
     my ($range, $file, $ypoints, $unit, @rrdargs) = @_;
     my $step = $range * $points_per_sample / $xpoints;
     # choose carefully the end otherwise rrd will maybe pick the wrong RRA:
@@ -81,11 +111,11 @@ sub rrd_graph(@) {
 		    'COMMENT:['.$date.']\r',
 		    );
 
-    my $ERR=RRDs::error;
-    die "ERROR: $ERR\n" if $ERR;
+    die "ERROR: " . RRDs::error() . "\n" if RRDs::error();
+    return;
 }
 
-sub graph_ops($$) {
+sub graph_ops {
     my ($range, $file) = @_;
     my $step = $range * $points_per_sample / $xpoints;
 
@@ -134,9 +164,11 @@ sub graph_ops($$) {
 	      'GPRINT:total:AVERAGE:\t%6.2lf',
 	      'GPRINT:mtotal:MAX:\t%6.0lf\l',
 	      );
+
+    return;
 }
 
-sub graph_connxn($$) {
+sub graph_connxn {
     my ($range, $file) = @_;
     my $step = $range * $points_per_sample / $xpoints;
 
@@ -206,11 +238,12 @@ sub graph_connxn($$) {
 	      'GPRINT:stotal:MAX:    %12.0lf',
 	      'GPRINT:total:AVERAGE:\t%6.2lf',
 	      'GPRINT:mtotal:MAX:\t%6.0lf\l',
-
 	      );
+
+    return;
 }
 
-sub print_html() {
+sub print_html {
     print "Content-Type: text/html\n\n";
 
     print <<HEADER;
@@ -255,9 +288,11 @@ HEADER
 </html>
 FOOTER
 ;
+
+    return;
     }
 
-sub send_image($) {
+sub send_image {
     my $file = shift;
 
     if (!-r $file) {
@@ -268,37 +303,10 @@ sub send_image($) {
     print "Content-type: image/png\n";
     print "Content-length: " . ((stat($file))[7]) . "\n";
     print "\n";
-    open(IMG, $file) or die "Couldn't open $file: $!\n";
+    open(my $IMG, "<", $file) or die "Couldn't open $file: $!\n";
     my $data;
-    print $data while read(IMG, $data, 16384) > 0;
-    close(IMG);
+    print $data while read($IMG, $data, 16384) > 0;
+    close($IMG);
+
+    return;
 }
-
-sub main() {
-    my $uri = $ENV{'REQUEST_URI'} || '';
-    $uri =~ s/\/[^\/]+$//;
-    $uri =~ s/\//,/g;
-    $uri =~ s/(\~|\%7E)/tilde,/g;
-    mkdir $tmp_dir, 0777 unless -d $tmp_dir;
-    mkdir "$tmp_dir/$uri", 0777 unless -d "$tmp_dir/$uri";
-
-    my $img = $ENV{'QUERY_STRING'};
-    if(defined($img) and $img =~ /\S/) {
-	if ($img =~ /^(\d+)-n$/) {
-	    my $file = "$tmp_dir/$uri/fds_ops_$1.png";
-	    graph_ops($graphs[$1]{'seconds'}, $file);
-	    send_image($file);
-	} elsif ($img =~ /^(\d+)-e$/) {
-	    my $file = "$tmp_dir/$uri/fds_connxn_$1.png";
-	    graph_connxn($graphs[$1]{'seconds'}, $file);
-	    send_image($file);
-	} else {
-	    die "ERROR: invalid argument\n";
-	}
-    }
-    else {
-	print_html();
-    }
-}
-
-main();
