@@ -29,6 +29,62 @@
     font-weight: bolder;
 }
 
+.options {
+    border: thin solid #eebbbb;
+    background-color: #dddddd;
+    width: 300px;
+    max-height: 50%;
+    display: none;
+    position: absolute;
+    top: 30%;
+    left: 40%;
+}
+
+.options-link {
+    float: right;
+    margin: 5px;
+}
+
 body {
     background-color: #ffffff;
+}
+
+a {
+    text-decoration: none;
+    color: #cc2222;
+    font-family: arial, sans-serif;
+    font-size: small;
+    font-weight: normal;
+}
+
+a:hover {
+    border-bottom: thin dashed #cc2222;
+}
+
+form {
+    padding: 10px;
+    margin: 5px auto;
+    font-size: 1em;
+    font-family: arial, sans-serif;
+}
+
+form label {
+    clear: left;
+    display: block;
+    float: left;
+    width: 100px;
+    text-align: left;
+    padding-right: 10px;
+    margin-bottom: 0.5em;
+}
+
+form select {
+    margin: 0 0 1em 0.5em;
+}
+
+.button {
+    padding-right: 0.5em;
+    cursor: pointer;
+    width: 80%;
+    margin-left: 8px;
 }
