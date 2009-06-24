@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-ds-graphd - Graphing and statistics for Fedora Directory Server
+ds-graphd - Graphing and statistics for 389 Directory Server
 
 =head1 SYNOPSIS
 
@@ -14,9 +14,9 @@ ds-graphd -h
 
 =head1 DESCRIPTION
 
-ds-graphd is a Perl daemon that reads access logs from Fedora
-Directory Server and creates graphs of the data with RRDtool.  It
-works with both the 1.0.x and 1.1.x families of Fedora DS.
+ds-graphd is a Perl daemon that reads access logs from 389 Directory
+Server and creates graphs of the data with RRDtool.  It works with
+both 389 DS and earlier Fedora DS versions, including Fedora DS 1.0.x.
 
 =head1 OPTIONS
 
@@ -26,11 +26,11 @@ works with both the 1.0.x and 1.1.x families of Fedora DS.
 
 =over
 
-Fedora DS access logs live in the specified directory.  The default is
+389 DS access logs live in the specified directory.  The default is
 C<< /var/log/dirsrv/slapd-<instance> >> (see the B<-I> flag below) on
-Fedora DS 1.1.x, or C<< /opt/fedora-ds/slapd-<instance> >> on Fedora
-DS 1.0.x.  The -l option should rarely be necessary; the -I option
-will usually suffice.
+389 DS or Fedora DS 1.1.x, or C<< /opt/fedora-ds/slapd-<instance> >>
+on Fedora DS 1.0.x.  The -l option should rarely be necessary; the -I
+option will usually suffice.
 
 =back
 

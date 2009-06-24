@@ -2,7 +2,7 @@
 
 # $Id$
 #
-# fedora-ds-graph -- An rrdtool-based graphing tool for Fedora DS statistics
+# 389-ds-graph -- An rrdtool-based graphing tool for 389 DS statistics
 # copyright (c) 2006-2008 Chris St. Pierre <chris.a.st.pierre@gmail.com>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
@@ -31,7 +31,7 @@ my $rrd_dir = '/var/lib/ds-graph';
 
 # global variables
 my $logfile;
-my $fds_version;
+my $ds_version;
 my $instance;
 my $year;
 my $this_minute;
@@ -66,10 +66,10 @@ if ($opt{'logfile'}) {
 	$instance = $opt{'instance'};
 	if (-d "/var/log/dirsrv/slapd-$instance" &&
 	    -r "/var/log/dirsrv/slapd-$instance") {
-	    $fds_version = "1.1";
+	    $ds_version = "1.1";
 	} elsif (-d "/opt/fedora-ds/slapd-$instance" &&
 		 -r "/opt/fedora-ds/slapd-$instance") {
-	    $fds_version = "1.0";
+	    $ds_version = "1.0";
 	} else {
 	    die "Could not read or locate logs in either " .
 		"/var/log/dirsrv/slapd-$instance or " .
@@ -78,22 +78,21 @@ if ($opt{'logfile'}) {
     } else { # no instance specified on the command line
 	# try to determine the instance
 	if (-d "/opt/fedora-ds" && -r "/opt/fedora-ds") {
-	    $fds_version = "1.0";
+	    $ds_version = "1.0";
 	} elsif (-d "/var/log/dirsrv" && -r "/var/log/dirsrv") {
-	    $fds_version = "1.1";
+	    $ds_version = "1.1";
 	} else {
-	    die "No installation of Fedora DS 1.0 (/opt/fedora-ds) or 1.1 " .
-		"(/var/log/dirsrv) found\n";
+	    die "No installation of 389 DS found\n";
 	}
 	
-	my $fdsroot;
-	if ($fds_version eq '1.0') {
-	    $fdsroot = "/opt/fedora-ds";
-	} elsif ($fds_version eq '1.1') {
-	    $fdsroot = "/var/log/dirsrv";
+	my $dsroot;
+	if ($ds_version eq '1.0') {
+	    $dsroot = "/opt/fedora-ds";
+	} elsif ($ds_version eq '1.1') {
+	    $dsroot = "/var/log/dirsrv";
 	}
 	
-	opendir(DIR, $fdsroot); # made sure it was readable earlier
+	opendir(DIR, $dsroot); # made sure it was readable earlier
 	my $file;
 	my @instances;
 	while (defined($file = readdir(DIR))) {
@@ -105,16 +104,16 @@ if ($opt{'logfile'}) {
 	    $instance = shift(@instances);
 	    $instance =~ s/^slapd-//;
 	} elsif (scalar(@instances) == 0) {
-	    die "No instance ($fdsroot/slapd-*) found in $fdsroot\n";
+	    die "No instance ($dsroot/slapd-*) found in $dsroot\n";
 	} else { # scalar(@instances) > 1
-	    warn "More than one instance of Fedora DS found in $fdsroot\n";
+	    warn "More than one instance of 389 DS found in $dsroot\n";
 	    die "You must specify an instance on the command line with -I\n";
 	}
     }
     
-    if ($fds_version eq '1.0') {
+    if ($ds_version eq '1.0') {
 	$logfile = "/opt/fedora-ds/slapd-$instance/logs/access";
-    } elsif ($fds_version eq '1.1') {
+    } elsif ($ds_version eq '1.1') {
 	$logfile = "/var/log/dirsrv/slapd-$instance/access";
     }
 }
@@ -131,7 +130,7 @@ while(my $line = $parser->nextline()) {
 sub usage {
     print "usage: ds-graphd [*options*]\n\n";
     print "  -h, --help          display this help and exit\n";
-    print "  -I, --instance=INST FDS instance; do not include the slapd-\n";
+    print "  -I, --instance=INST 389 DS instance; do not include the slapd-\n";
     print "  -l, --logfile=FILE  monitor FILE (generally, use -I instead)\n";
     print "  -y, --year          starting year of the log file (default: current year)\n";
     print "  -d, --daemon        start in the background\n";
@@ -406,7 +405,7 @@ sub update {
     # inflation is undone when the graph is drawn.
     #
     # this should be corrected, but tuning the data in an RRD like that would
-    # be difficult.  As it stands, existing Fedora DS Graph users already have
+    # be difficult.  As it stands, existing 389 DS Graph users already have
     # lots of data in this format, so we're stuck with this for a while at
     # least.
     RRDs::update($connxn_rrd,

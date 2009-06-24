@@ -1,10 +1,10 @@
 # $Id$
 #
-# path to fdsgraph executable
+# path to ds-graphd executable
 DS_GRAPHD=/usr/bin/ds-graphd
 
 # where to store the RRDs
-RRD_DIR=/var/lib/fedora-ds-graph
+RRD_DIR=/var/lib/389-ds-graph
 
 # name of the Fedora DS instance
 INSTANCE=`hostname -s`

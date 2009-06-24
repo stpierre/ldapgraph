@@ -5,12 +5,12 @@
 # init script for ds-graphd
 #
 # chkconfig: 2345 82 28
-# description: fedora-ds-graph Fedora DS log grapher.
+# description: 389-ds-graph Fedora DS log grapher.
 #
 # processname: ds-graphd
 # pidfile: /var/run/ds-graph.pid
 
-# fedora-ds-graph -- An rrdtool-based graphing tool for Fedora DS statistics
+# 389-ds-graph -- An rrdtool-based graphing tool for 389 DS statistics
 # copyright (c) 2006-2008 Chris St. Pierre <chris.a.st.pierre@gmail.com>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License

@@ -1,3 +1,14 @@
+v1.1.2, 23-Jun-2009
+
+* Changed name to 389 DS Graph, and eliminated most references to Fedora
+  DS
+
+v1.1.1, 12-Dec-2008
+
+* Major code cleanup, particularly to CGI
+* Added options to web interface
+* Split Perl::FDSlog into its own package, added SELinux context package
+
 v1.1.0, 26-Nov-2008
 
 * Substantial changes to specfile and init scripts to bring Fedora DS
