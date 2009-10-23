@@ -139,17 +139,17 @@ if [ $1 -eq 0 ] ; then  # final removal
 fi
 
 %changelog
-* Tue Jun 23 2009 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 
+* Tue Jun 23 2009 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 1.1.2-1
 - Changed name to 389 DS Graph
 
-* Tue Dec 9 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 
+* Tue Dec  9 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 1.1.0-1
 - Split perl-Parse-FDSlog into separate package
 
-* Thu Nov 20 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 
+* Thu Nov 20 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 1.0.2-2
 - Added selinux package
 
-* Thu Aug 14 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 
+* Thu Aug 14 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 1.0.2-1
 - Substantially edited to conform closer to Fedora packaging guidelines
 
-* Thu Feb 28 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 
+* Thu Feb 28 2008 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 0.3.0-1
 - Created
