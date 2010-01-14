@@ -1,12 +1,14 @@
+#!/usr/bin/perl
+#
 # $Id$
 
 package Parse::FDSlog;
 
+use strict;
+use warnings;
 use Carp;
 use Symbol;
 use Time::Local;
-use strict;
-use warnings;
 
 my %months_map = (
     'jan' => 0, 'feb' => 1, 'mar' => 2,

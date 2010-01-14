@@ -6,17 +6,17 @@
 Summary:   389 DS Graph
 Name:      389-ds-graph
 Version:   1.1.2
-Release:   1%{?dist}
+Release:   2%{?dist}
 License:   GPLv2
 Group:     System Environment/Daemons
 BuildArch: noarch
 
-Provides:  389-ds-graph = %{version}
-Obsoletes: fdsgraph, fedora-ds-graph
+Obsoletes: fdsgraph < %{version}, fedora-ds-graph < %{version}
 
 Requires:  perl, rrdtool-perl > 1.2, httpd, perl(Parse::FDSlog)
 
-Source:    http://superb-east.dl.sourceforge.net/sourceforge/%{oldname}/%{name}-%{version}.tar.gz
+URL:       http://%{oldname}.sourceforge.net
+Source0:   http://superb-east.dl.sourceforge.net/sourceforge/%{oldname}/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 
 %description
@@ -29,6 +29,8 @@ from 389 Directory Server/Fedora Directory Server
 %build
 
 %install
+rm -rf $RPM_BUILD_ROOT
+
 # perl lib                                                                  
 mkdir -p -m 755 $RPM_BUILD_ROOT%{perl_vendorlib}/Parse
 install -m 755 Parse/FDSlog.pm $RPM_BUILD_ROOT%{perl_vendorlib}/Parse/FDSlog.pm
@@ -61,15 +63,17 @@ mkdir -p $RPM_BUILD_ROOT%{apacheconfdir}
 install -m 644 %{name}.conf $RPM_BUILD_ROOT%{apacheconfdir}/%{name}.conf 
 
 # documentation
-mkdir -p $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}
-install -m 644 doc/* $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}
 mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
 install -m 644 man/ds-graphd.1.gz $RPM_BUILD_ROOT%{_mandir}/man1/ds-graphd.1.gz
 
 %pre
-if [ -e $RPM_BUILD_ROOT%{_localstatedir}/lib/%{oldname} ]; then
-   mv $RPM_BUILD_ROOT%{_localstatedir}/lib/%{oldname} \
-      $RPM_BUILD_ROOT%{_localstatedir}/lib/%{name}
+if [ -e %{_localstatedir}/lib/%{oldname} ]; then
+   mv %{_localstatedir}/lib/%{oldname} %{_localstatedir}/lib/%{name}
+fi
+
+%preun
+if [ $1 -eq 0 ] ; then
+    /sbin/chkconfig --del ds-graph
 fi
 
 %post
@@ -89,7 +93,7 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/sysconfig/ds-graph
 %config(noreplace) %{apacheconfdir}/%{name}.conf
 
-%doc %{_docdir}/%{name}-%{version}
+%doc doc/*
 %doc %{_mandir}/man1/ds-graphd.1.gz
 
 #################################################
@@ -102,7 +106,7 @@ Summary:   389 DS Log Parser
 Version:   0.2.1
 Release:   1%{?dist}
 License:   GPLv2
-Group:     Applications/CPAN
+Group:     Development/Libraries
 BuildArch: noarch
 
 %description -n perl-Parse-FDSlog
@@ -139,6 +143,9 @@ if [ $1 -eq 0 ] ; then  # final removal
 fi
 
 %changelog
+* Wed Dec  2 2009 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 1.1.2-2
+- Misc. minor changes
+
 * Tue Jun 23 2009 Chris St. Pierre <chris.a.st.pierre@gmail.com> - 1.1.2-1
 - Changed name to 389 DS Graph
 
