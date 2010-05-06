@@ -16,7 +16,7 @@ Obsoletes: fdsgraph < %{version}, fedora-ds-graph < %{version}
 Requires:  perl, rrdtool-perl > 1.2, httpd, perl(Parse::FDSlog)
 
 URL:       http://%{oldname}.sourceforge.net
-Source0:   http://superb-east.dl.sourceforge.net/sourceforge/%{oldname}/%{name}-%{version}.tar.gz
+Source0:   http://downloads.sourceforge.net/%{oldname}/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 
 %description
