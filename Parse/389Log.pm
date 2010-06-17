@@ -2,7 +2,7 @@
 #
 # $Id$
 
-package Parse::FDSlog;
+package Parse::389Log;
 
 use strict;
 use warnings;
@@ -49,7 +49,6 @@ sub str2time {
 
 sub new {
     my ($class, $file, %data) = @_;
-    carp("Parse::FDSlog is deprecated in favor of Parse::389Log");
     croak "new() requires one argument: file" unless defined $file;
     %data = () unless %data;
     if (not defined($data{'year'})) {

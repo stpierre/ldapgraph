@@ -7,8 +7,6 @@
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 
-#!/usr/bin/perl -w
-
 # $Id$
 
 use strict;
@@ -17,9 +15,10 @@ use RRDs;
 use File::Tail;
 use Getopt::Long;
 use POSIX 'setsid';
-use Parse::FDSlog;
+use Parse::389Log;
+use Pod::Usage;
 
-my $VERSION = "1.1.1";
+my $VERSION = "1.1.3";
 
 # config
 my $rrdstep = 60;
@@ -47,7 +46,7 @@ GetOptions(\%opt,
 	   'help|h', 'logfile|l=s', 'year|y=i', 'daemon|d!', 'pidfile=s',
 	   'rrddir=s', 'instance|I=s',
     ) or exit(1);
-usage() if $opt{'help'};
+pod2usage(0) if $opt{'help'};
 
 $pidfile = $opt{'pidfile'} if defined $opt{'pidfile'};
 $rrd_dir = $opt{'rrddir'}  if defined $opt{'rrddir'};
@@ -119,25 +118,15 @@ if ($opt{'logfile'}) {
 }
 
 my $file = File::Tail->new(name => $logfile, tail => -1);
-my $parser = new Parse::FDSlog($file,
-			       year => $opt{'year'},
+my $parser = new Parse::389Log($file,
+			       year     => $opt{'year'},
 			       arrayref => 1);
 
 while(my $line = $parser->nextline()) {
     process_line($line);
 }
 
-sub usage {
-    print "usage: ds-graphd [*options*]\n\n";
-    print "  -h, --help          display this help and exit\n";
-    print "  -I, --instance=INST 389 DS instance; do not include the slapd-\n";
-    print "  -l, --logfile=FILE  monitor FILE (generally, use -I instead)\n";
-    print "  -y, --year          starting year of the log file (default: current year)\n";
-    print "  -d, --daemon        start in the background\n";
-    print "  --pidfile=FILE      write PID to FILE instead of $pidfile\n";
-    print "  --rrddir=DIR        write RRDs to DIR instead of $rrd_dir\n";    
-    exit;
-}
+##################################################
 
 sub daemonize {
     open STDIN, '<', '/dev/null'
@@ -439,3 +428,100 @@ sub update {
     $sum{'tls'} = 0;
     return 1;
 }
+
+__END__
+
+=head1 NAME
+
+ds-graphd - Graphing and statistics for 389 Directory Server
+
+=head1 SYNOPSIS
+
+B<ds-graphd> [--logfile=</path/to/logfile>] [--year=<year>] [--daemon]
+   [--pidfile=<pidfile>] [--rrddir=<rrddir>] [--instance=<instance_name>]
+
+B<ds-graphd> -h
+
+=head1 DESCRIPTION
+
+B<ds-graphd> is a Perl daemon that reads access logs from 389 Directory
+Server and creates graphs of the data with RRDtool.  It works with
+both 389 DS and earlier Fedora DS versions, including Fedora DS 1.0.x.
+
+=head1 OPTIONS
+
+=over
+
+=item B<< --logfile=<logfile> >>, B<< -l <logfile> >>
+
+=over
+
+389 DS access logs live in the specified directory.  The default is
+C<< /var/log/dirsrv/slapd-<instance> >> (see the B<-I> flag below) on
+389 DS or Fedora DS 1.1.x, or C<< /opt/fedora-ds/slapd-<instance> >>
+on Fedora DS 1.0.x.  The -l option should rarely be necessary; the -I
+option will usually suffice.
+
+=back
+
+=item B<< --year=<year> >>, B<< -y <year> >>
+
+=over
+
+The log files parsed by ds-graphd are from the specified year.
+Default is the current year.
+
+=back
+
+=item B<--daemon>, B<-d>
+
+=over
+
+Daemonize ds-graphd
+
+=back
+
+=item B<< --pidfile=<pidfile> >>
+
+=over
+
+Write ds-graphd's PID to the specified file instead of C</var/run/ds-graph.pid>
+
+=back
+
+=item B<< --rrddir=<rrddir> >>
+
+=over
+
+Write the RRDs to the specified directory instead of C</var/lib/ds-graph>.
+
+=back
+
+=item B<< instance=<instance_name> >>, B<< -I <instance_name> >>
+
+=over
+
+Track data for the specified instance.  By default, ds-graphd will attempt to
+follow data for the instance named after the short hostname of the box it's
+running on.  If you specify an instance name with this option, do not include
+C<slapd->.
+
+=back
+
+=item B<-h>
+
+=over
+
+Display usage information
+
+=back
+
+=back
+
+=head1 SEE ALSO
+
+L<rrdtool(1)>, L<RRDs(3)>
+
+=head1 AUTHOR
+
+Chris St. Pierre <chris.a.st.pierre@gmail.com>
