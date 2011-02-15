@@ -13,7 +13,7 @@ BuildArch: noarch
 
 Obsoletes: fdsgraph < %{version}, fedora-ds-graph < %{version}
 
-BuildRequires: pod2man
+BuildRequires: perl
 
 Requires:  perl, rrdtool-perl > 1.2, httpd, perl(Parse::389Log)
 
