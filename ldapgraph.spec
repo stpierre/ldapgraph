@@ -98,6 +98,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %{_mandir}/man1/%{name}.1.gz
 
+%doc README
 %doc doc/*
 
 #################################################

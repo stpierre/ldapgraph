@@ -2,42 +2,47 @@
 
 # $Id$
 #
-# init script for ds-graphd
+# init script for ldapgraphd
 #
 # chkconfig: 2345 82 28
-# description: 389-ds-graph Fedora DS log grapher.
+# description: ldapgraph LDAP log grapher.
 #
-# processname: ds-graphd
-# pidfile: /var/run/ds-graph.pid
+# processname: ldapgraphd
+# pidfile: /var/run/ldapgraph.pid
 
-# 389-ds-graph -- An rrdtool-based graphing tool for 389 DS statistics
-# copyright (c) 2006-2008 Chris St. Pierre <chris.a.st.pierre@gmail.com>
+# ldapgraph -- An rrdtool-based graphing tool for LDAP server (389DS,
+#              RHDS, Sun DS, OpenLDAP statistics)
+# copyright (c) 2006-2011 Chris St. Pierre <chris.a.st.pierre@gmail.com>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 
 # Source function library.
 . /etc/init.d/functions
 
-LOCK_FILE=/var/lock/subsys/ds-graph
+LOCK_FILE=/var/lock/subsys/ldapgraph
 
-[ -e /etc/sysconfig/ds-graph ] && . /etc/sysconfig/ds-graph
+[ -e /etc/sysconfig/ldapgraph ] && . /etc/sysconfig/ldapgraph
 
 case "$1" in
     'start')
-	if [ "x${LOGFILE}" != "x" ]; then
+	if [ -n ${LOGFILE} ]; then
 	    ARGS="-l ${LOGFILE}"
 	else
 	    ARGS="-I ${INSTANCE}"
 	fi
 
-	if [ "x${PIDFILE}" != "x" ]; then
+	if [ -n ${PIDFILE} ]; then
 	    ARGS="${ARGS} --pidfile=${PID_FILE}"
 	fi
 
+        if [ -z $LDAPGRAPHD ]; then
+            LDAPGRAPHD=ldapgraphd
+        fi
+
 	ARGS="${ARGS} -d --rrddir=${RRD_DIR}"
 
-	echo -n "Starting ds-graph";
-	daemon ${DS_GRAPHD} ${ARGS}
+	echo -n "Starting ldapgraph";
+	daemon ${LDAPGRAPHD} ${ARGS}
 	RETVAL=$?
 	echo
 	[ ${RETVAL} -eq 0 ] && touch ${LOCK_FILE}
@@ -45,8 +50,8 @@ case "$1" in
 	;;
 
     'stop')
-	echo -n "Stopping ds-graph";
-	killproc ${DS_GRAPHD}
+	echo -n "Stopping ldapgraph";
+	killproc ${LDAPGRAPHD}
 	RETVAL=$?
 	echo
 	[ ${RETVAL} -eq 0 ] && rm ${LOCK_FILE}

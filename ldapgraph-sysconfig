@@ -1,13 +1,13 @@
 # $Id$
 #
 # path to ds-graphd executable
-DS_GRAPHD=/usr/bin/ds-graphd
+#LDAPGRAPHD=/usr/bin/ldapgraphd
 
 # where to store the RRDs
-RRD_DIR=/var/lib/389-ds-graph
+RRD_DIR=/var/lib/ldapgraph
 
 # name of the Fedora DS instance
-INSTANCE=`hostname -s`
+INSTANCE=$(hostname -s)
 
 # log file; only define this if you keep your logs someplace strange,
 # outside the normal directory.  This will override INSTANCE
