@@ -1,0 +1,25 @@
+LDAPGraph is a graphing tool for various LDAP servers.  It is known
+to work with 389 Directory Server (formerly Fedora DS), and should
+also work with Red Hat DS and Sun DS as well.  OpenLDAP support is
+forthcoming.
+
+Given the forthcoming OpenLDAP support, LDAPGraph is in the process of
+a) changing name from 389-ds-graph to LDAPGraph; and b) moving from
+Sourceforge to Github.  Please pardon our mess.
+
+Ideally, after installing, you should just have to run:
+
+# service ldapgraph start
+# service httpd graceful
+
+The web interface can be found at
+http://yourhost.example.com/ldapgraph/cgi-bin/ldapgraph.cgi
+
+LDAPGraph assumes by default that you have an 389 DS instance named
+after the shortname of your server (i.e., config files for your
+instance are in /etc/dirsrv/slapd-$(hostname -s)).  If this isn't the
+case, change the value of INSTANCE in /etc/sysconfig/ldapgraph.
+
+LDAP Graph does not currently support graphing data from more
+than one 389 DS instance, nor from
+
