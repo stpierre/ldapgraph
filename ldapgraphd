@@ -1,13 +1,9 @@
 #!/usr/bin/perl
 
-# $Id$
-#
-# 389-ds-graph -- An rrdtool-based graphing tool for 389 DS statistics
-# copyright (c) 2006-2008 Chris St. Pierre <chris.a.st.pierre@gmail.com>
+# ldapgraph -- An rrdtool-based graphing tool for LDAP server statistics
+# copyright (c) 2006-2011 Chris St. Pierre <chris.a.st.pierre@gmail.com>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
-
-# $Id$
 
 use strict;
 use warnings;
@@ -25,8 +21,8 @@ my $rrdstep = 60;
 my $xpoints = 540;
 my $points_per_sample = 3;
 
-my $pidfile = '/var/run/ds-graph.pid';
-my $rrd_dir = '/var/lib/ds-graph';
+my $pidfile = '/var/run/ldapgraph.pid';
+my $rrd_dir = '/var/lib/ldapgraph';
 
 # global variables
 my $logfile;
@@ -54,7 +50,7 @@ $rrd_dir = $opt{'rrddir'}  if defined $opt{'rrddir'};
 my $ops_rrd = "$rrd_dir/fds_ops.rrd";
 my $connxn_rrd = "$rrd_dir/fds_connxn.rrd";
 
-die "ds-graphd: can't write to $rrd_dir\n" unless -w $rrd_dir;
+die "ldapgraphd: can't write to $rrd_dir\n" unless -w $rrd_dir;
 
 daemonize() if $opt{'daemon'};
 
@@ -130,22 +126,22 @@ while(my $line = $parser->nextline()) {
 
 sub daemonize {
     open STDIN, '<', '/dev/null'
-	or die "ds-graphd: can't read /dev/null: $!";
+	or die "ldapgraphd: can't read /dev/null: $!";
     open STDOUT, '>', '/dev/null'
-	or die "ds-graphd: can't write to /dev/null: $!";
+	or die "ldapgraphd: can't write to /dev/null: $!";
 
-    defined(my $pid = fork) or die "ds-graphd: can't fork: $!";
+    defined(my $pid = fork) or die "ldapgraphd: can't fork: $!";
     if ($pid) {
 	# parent
 	open my $PIDFILE, ">", $pidfile
-	    or die "ds-graphd: can't write to $pidfile: $!\n";
+	    or die "ldapgraphd: can't write to $pidfile: $!\n";
 	print $PIDFILE "$pid\n";
 	close($PIDFILE);
 	exit;
     }
     # child
-    setsid or die "ds-graphd: can't start a new session: $!";
-    open STDERR, '>', '&STDOUT' or die "ds-graphd: can't dup stdout: $!";
+    setsid or die "ldapgraphd: can't start a new session: $!";
+    open STDERR, '>', '&STDOUT' or die "ldapgraphd: can't dup stdout: $!";
     return;
 }
 
@@ -433,20 +429,21 @@ __END__
 
 =head1 NAME
 
-ds-graphd - Graphing and statistics for 389 Directory Server
+ldapgraphd - Graphing and statistics for 389 Directory Server
 
 =head1 SYNOPSIS
 
-B<ds-graphd> [--logfile=</path/to/logfile>] [--year=<year>] [--daemon]
+B<ldapgraphd> [--logfile=</path/to/logfile>] [--year=<year>] [--daemon]
    [--pidfile=<pidfile>] [--rrddir=<rrddir>] [--instance=<instance_name>]
 
-B<ds-graphd> -h
+B<ldapgraphd> -h
 
 =head1 DESCRIPTION
 
-B<ds-graphd> is a Perl daemon that reads access logs from 389 Directory
-Server and creates graphs of the data with RRDtool.  It works with
-both 389 DS and earlier Fedora DS versions, including Fedora DS 1.0.x.
+B<ldapgraphd> is a Perl daemon that reads access logs from 389
+Directory Server and creates graphs of the data with RRDtool.  It
+works with 389 DS, RHDS, Sun DS, and earlier Fedora DS versions,
+including Fedora DS 1.0.x.  OpenLDAP support is forthcoming.
 
 =head1 OPTIONS
 
@@ -468,7 +465,7 @@ option will usually suffice.
 
 =over
 
-The log files parsed by ds-graphd are from the specified year.
+The log files parsed by ldapgraphd are from the specified year.
 Default is the current year.
 
 =back
@@ -477,7 +474,7 @@ Default is the current year.
 
 =over
 
-Daemonize ds-graphd
+Daemonize ldapgraphd
 
 =back
 
@@ -485,7 +482,8 @@ Daemonize ds-graphd
 
 =over
 
-Write ds-graphd's PID to the specified file instead of C</var/run/ds-graph.pid>
+Write ldapgraphd's PID to the specified file instead of
+C</var/run/ldapgraph.pid>
 
 =back
 
@@ -493,7 +491,8 @@ Write ds-graphd's PID to the specified file instead of C</var/run/ds-graph.pid>
 
 =over
 
-Write the RRDs to the specified directory instead of C</var/lib/ds-graph>.
+Write the RRDs to the specified directory instead of
+C</var/lib/ldapgraph>.
 
 =back
 
@@ -501,10 +500,10 @@ Write the RRDs to the specified directory instead of C</var/lib/ds-graph>.
 
 =over
 
-Track data for the specified instance.  By default, ds-graphd will attempt to
-follow data for the instance named after the short hostname of the box it's
-running on.  If you specify an instance name with this option, do not include
-C<slapd->.
+Track data for the specified instance.  By default, ldapgraphd will
+attempt to follow data for the instance named after the short hostname
+of the box it's running on.  If you specify an instance name with this
+option, do not include C<slapd->.
 
 =back
 
