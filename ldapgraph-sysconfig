@@ -1,6 +1,6 @@
 # $Id$
 #
-# path to ds-graphd executable
+# path to ldapgraphd executable
 #LDAPGRAPHD=/usr/bin/ldapgraphd
 
 # where to store the RRDs

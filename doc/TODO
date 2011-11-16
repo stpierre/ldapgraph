@@ -1,5 +1,3 @@
-- Track data from multiple FDS instances
+- Track data from multiple 389DS instances
 - Track GSSAPI connections
 - Easier pre-loading with old log data
-
-$Id$

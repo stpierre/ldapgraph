@@ -1,6 +1,4 @@
 #!/usr/bin/perl
-#
-# $Id$
 
 package Parse::FDSlog;
 

@@ -1,6 +1,4 @@
 #!/usr/bin/perl
-#
-# $Id$
 
 package Parse::389Log;
 
@@ -96,9 +94,10 @@ sub _next_line {
 sub nextline {
     my ($self) = @_;
   line: while(my $str = $self->_next_line()) {
-      # when FDS starts up, it generates three lines at the top of its logs
-      # that aren't in the same format as the rest of the logs.  The first
-      # two start with whitespace, and the third is blank.
+      # when 389DS starts up, it generates three lines at the top of
+      # its logs that aren't in the same format as the rest of the
+      # logs.  The first two start with whitespace, and the third is
+      # blank.
       next if $str =~ /^\s+/;
       next if $str =~ /^$/;
 

@@ -1,9 +1,7 @@
 #!/usr/bin/perl
 
-# $Id$
-
-# 389-ds-graph -- An rrdtool-based graphing tool for 389 DS statistics
-# copyright (c) 2006-2008 Chris St. Pierre <chris.a.st.pierre@gmail.com>
+# ldapgraph -- An rrdtool-based graphing tool for LDAP server statistics
+# copyright (c) 2006-2011 Chris St. Pierre <chris.a.st.pierre@gmail.com>
 # based on mailgraph copyright (c) 2000-2005 David Schweikert <dws@ee.ethz.ch>
 # released under the GNU General Public License
 
@@ -14,15 +12,15 @@ use POSIX qw(uname);
 use CGI::Pretty;
 
 my $host = (POSIX::uname())[1];
-my $scriptname = 'ds-graph.cgi';
+my $scriptname = 'ldapgraph.cgi';
 my $xpoints = 540;
 my $points_per_sample = 3;
 my $ypoints = 300;
 # where the RRD databases live
-chomp(my $rrd_dir = `source /etc/sysconfig/ds-graph && echo \$RRD_DIR`);
+chomp(my $rrd_dir = `source /etc/sysconfig/ldapgraph && echo \$RRD_DIR`);
 my $ops_rrd = "$rrd_dir/fds_ops.rrd";
 my $connxn_rrd = "$rrd_dir/fds_connxn.rrd";
-my $tmp_dir = '/tmp/389-ds-graph'; # temporary directory to store the images
+my $tmp_dir = '/tmp/ldapgraph'; # temporary directory to store the images
 
 my %graphs = (3600 * 4            => 'Four-Hour Graphs',
 	      3600 * 24           => 'Day Graphs',
@@ -105,7 +103,7 @@ EOJS
 
     print $cgi->header(-cookie => [@cookies]);
     print $cgi->start_html(-title  => "LDAP Statistics for $host",
-			   -style  => {src => "../ds-graph.css"},
+			   -style  => {src => "../ldapgraph.css"},
 			   -script => $jstoggle,
 			   -head   => [$cgi->meta({-http_equiv => 'Refresh',
 						   -content    => '300'}),

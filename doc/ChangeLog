@@ -1,3 +1,8 @@
+v1.2.0, TODO
+
+* Changed name to LDAPGraph
+* Added support for OpenLDAP
+
 v1.1.2, 23-Jun-2009
 
 * Changed name to 389 DS Graph, and eliminated most references to Fedora
@@ -19,7 +24,7 @@ v1.1.0, 26-Nov-2008
 * Rewrote web interface to be much shinier
 * Fixed add_ds.pl code from 1.0.2 to actually work :)
 * Added man page
-	
+
 v1.0.2, 10-Apr-2008
 
 * De-deprecated -l logfile option
