@@ -93,13 +93,13 @@ sub _next_line {
 
 sub nextline {
     my ($self) = @_;
-  line: while(my $str = $self->_next_line()) {
+  LINE: while(my $str = $self->_next_line()) {
       # when 389DS starts up, it generates three lines at the top of
       # its logs that aren't in the same format as the rest of the
       # logs.  The first two start with whitespace, and the third is
       # blank.
-      next if $str =~ /^\s+/;
-      next if $str =~ /^$/;
+      next LINE if $str =~ /^\s+/;
+      next LINE if $str =~ /^$/;
 
       $str =~ /^
 	  \[(\d+)\/(\S+)\/\d+  # date - 1, 2
@@ -114,7 +114,7 @@ sub nextline {
 	  $/x
 	  or do {
 	      warn "WARNING: line not in FDS log format: $str";
-	      next line;
+	      next LINE;
       };
       my $mon = $months_map{lc($2)};
       croak "unknown month $1\n" unless defined($mon);
@@ -126,7 +126,7 @@ sub nextline {
       # accept maximum one day in the present future
       if($time - time > 86400) {
 	  warn "WARNING: ignoring future date in log line: $str\n";
-	  next line;
+	  next LINE;
       }
       my ($op, $text) = ($6, $7);
       $self->{'_last_data'}{$op} = [$time, $op, $text];
