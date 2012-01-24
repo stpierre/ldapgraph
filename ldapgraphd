@@ -12,6 +12,7 @@ use File::Tail;
 use Getopt::Long;
 use POSIX 'setsid';
 use Parse::389Log;
+use Parse::OpenLDAPLog;
 use Pod::Usage;
 
 my $VERSION = "1.1.3";
@@ -21,14 +22,7 @@ my $rrdstep = 60;
 my $xpoints = 540;
 my $points_per_sample = 3;
 
-my $pidfile = '/var/run/ldapgraph.pid';
-my $rrd_dir = '/var/lib/ldapgraph';
-
 # global variables
-my $logfile;
-my $ds_version;
-my $instance;
-my $year;
 my $this_minute;
 my %sum = ( add => 0, srch => 0, bind => 0, mod => 0, del => 0, ext => 0,
 	    cmp => 0, modrdn => 0,
@@ -36,17 +30,14 @@ my %sum = ( add => 0, srch => 0, bind => 0, mod => 0, del => 0, ext => 0,
 my $rrd_inited=0;
 
 my %opt = ();
-
 Getopt::Long::Configure('no_ignore_case');
 GetOptions(\%opt,
 	   'help|h', 'logfile|l=s', 'year|y=i', 'daemon|d!', 'pidfile=s',
-	   'rrddir=s', 'instance|I=s',
-    ) or exit(1);
+	   'rrddir=s', 'instance|I=s', '389') or exit(1);
 pod2usage(0) if $opt{'help'};
 
-$pidfile = $opt{'pidfile'} if defined $opt{'pidfile'};
-$rrd_dir = $opt{'rrddir'}  if defined $opt{'rrddir'};
-
+my $pidfile = $opt{'pidfile'} || '/var/run/ldapgraph.pid';
+my $rrd_dir = $opt{'rrddir'}  || '/var/lib/ldapgraph';
 my $ops_rrd = "$rrd_dir/fds_ops.rrd";
 my $connxn_rrd = "$rrd_dir/fds_connxn.rrd";
 
@@ -54,9 +45,17 @@ die "ldapgraphd: can't write to $rrd_dir\n" unless -w $rrd_dir;
 
 daemonize() if $opt{'daemon'};
 
+my ($logfile, $logtype);
 if ($opt{'logfile'}) {
     $logfile = $opt{'logfile'};
+    if ($opt{'389'}) {
+        $logtype = '389';
+    } else {
+        $logtype = 'openldap';
+    }
 } else { # no logfile specified -- use the instance to figure it out
+    $logtype = '389';
+    my ($ds_version, $instance);
     if ($opt{'instance'}) {
 	$instance = $opt{'instance'};
 	if (-d "/var/log/dirsrv/slapd-$instance" &&
@@ -114,9 +113,16 @@ if ($opt{'logfile'}) {
 }
 
 my $file = File::Tail->new(name => $logfile, tail => -1);
-my $parser = new Parse::389Log($file,
-			       year     => $opt{'year'},
-			       arrayref => 1);
+my $parser;
+if ($logtype eq '389') {
+    $parser = new Parse::389Log($file,
+                                year     => $opt{'year'},
+                                arrayref => 1);
+} else {
+    $parser = new Parse::OpenLDAPLog($file,
+                                     year     => $opt{'year'},
+                                     arrayref => 1);
+}
 
 while(my $line = $parser->nextline()) {
     process_line($line);
@@ -332,23 +338,30 @@ sub process_line {
     if ($op) {
 	if ($op =~ /^ADD|SRCH|MOD|DEL|CMP|MODRDN$/) {
 	    event($time, lc($op));
-	} elsif ($op =~ /^BIND$/) {
+	} elsif ($op eq 'BIND') {
 	    event($time, 'bind');
 	    event($time, 'sasl') if $text =~ /^method=sasl/;
-	} elsif ($op =~ /^RESULT$/ && $text =~ /^err=14 tag=97/) {
+	} elsif ($op eq 'RESULT' && $text =~ /^err=14 tag=97/) {
 	    # SASL bind in progress
 	    event($time, 'unsasl');
-	} elsif ($op =~ /^EXT$/) {
+	} elsif ($op eq 'EXT') {
 	    event($time, 'ext');
 	    event($time, 'tls')
 		if $text =~ /oid="1\.3\.6\.1\.4\.1\.1466\.20037"/;
-	} elsif ($op =~ /^SSL$/ && $text =~ /^connection from/) {
+	} elsif ($op eq 'SSL' && $text =~ /^connection from/) {
 	    event($time, 'ssl');
-	}
-    } else { # either a connect or disconnect
-	if ($text =~ /^connection from/) {
-	    event($time, 'connxn');
-	}
+	} elsif ($op eq 'ACCEPT') {
+            if ($text =~ /:636\)/) {
+                # OpenLDAP doesn't clearly flag SSL connections, so we
+                # have to guess based on port number
+                event($time, 'ssl');
+            } else {
+                event($time, 'connxn');
+            }
+        }
+    } elsif ($text =~ /^connection from/) {
+        # 389 doesn't flag connections with an operation
+        event($time, 'connxn');
     }
 
     return;
@@ -445,6 +458,32 @@ Directory Server and creates graphs of the data with RRDtool.  It
 works with 389 DS, RHDS, Sun DS, and earlier Fedora DS versions,
 including Fedora DS 1.0.x.  OpenLDAP support is forthcoming.
 
+=head1 LOG FILE SELECTION
+
+B<ldapgraphd> provides several options for selecting the log file to
+read from:
+
+=over
+
+=item For 389 DS or Fedora DS logs, you can supply the B<< -I
+<instance> >> flag to specify the instance whose log you wish to
+follow.
+
+=item For OpenLDAP logs, you must supply the B<< -l <logfile> >> flag
+to specify the full path to the log to follow.
+
+=item For 389 DS, Fedora DS, RHDS, or Sun DS logs, you may supply both
+the B<< -l <logfile> >> flag to specify the full path to the log, and
+the B<< --389 >> flag to inform ldapgraphd that the log is a 389-style
+log.  By default, a log file specified with B<< -l <logfile> >> is
+assumed to be an OpenLDAP log.
+
+=item If you have only a single 389 DS or Fedora DS instance, you can
+specify no log selection options at all to use the access log for the
+single instance.
+
+=back
+
 =head1 OPTIONS
 
 =over
@@ -453,11 +492,26 @@ including Fedora DS 1.0.x.  OpenLDAP support is forthcoming.
 
 =over
 
-389 DS access logs live in the specified directory.  The default is
-C<< /var/log/dirsrv/slapd-<instance> >> (see the B<-I> flag below) on
-389 DS or Fedora DS 1.1.x, or C<< /opt/fedora-ds/slapd-<instance> >>
-on Fedora DS 1.0.x.  The -l option should rarely be necessary; the -I
-option will usually suffice.
+Full path to the OpenLDAP log file.  To use B<-l> with 389 DS, Fedora
+DS, RHDS, or Sun DS, you must also pass the B<--389> flag.
+
+=back
+
+=item B<--389>
+
+=over
+
+Use the 389 DS-style parser for a log file specified with the B<-l>
+option.
+
+=back
+
+=item B<< instance=<instance_name> >>, B<< -I <instance_name> >>
+
+=over
+
+Track data for the specified 389 DS or Fedora DS instance.  If you
+specify an instance name with this option, do not include C<slapd->.
 
 =back
 
@@ -493,17 +547,6 @@ C</var/run/ldapgraph.pid>
 
 Write the RRDs to the specified directory instead of
 C</var/lib/ldapgraph>.
-
-=back
-
-=item B<< instance=<instance_name> >>, B<< -I <instance_name> >>
-
-=over
-
-Track data for the specified instance.  By default, ldapgraphd will
-attempt to follow data for the instance named after the short hostname
-of the box it's running on.  If you specify an instance name with this
-option, do not include C<slapd->.
 
 =back
 
