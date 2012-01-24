@@ -17,7 +17,7 @@ Requires: perl, rrdtool-perl > 1.2, httpd
 Requires: perl(Parse::389Log), perl(Parse::OpenLDAPLog)
 
 URL:       https://github.com/stpierre/%{name}
-Source0:   https://github.com/stpierre/%{name}/tarball/master
+Source0:   %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 
 %description
